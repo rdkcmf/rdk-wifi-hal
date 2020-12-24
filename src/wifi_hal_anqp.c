@@ -44,7 +44,7 @@
 
 extern unsigned char wifi_common_hal_test_signature[8];
 
-extern get_formatted_time(char *);
+extern char* get_formatted_time(char *);
 
 //Currently ANQP(Adv ID:0) is the only GAS type supported
 #define MAX_AP_INDEX 15
@@ -53,8 +53,11 @@ extern get_formatted_time(char *);
 #define MAC_STR_LEN 18
 
 static wifi_GASConfiguration_t gasCfg[GAS_CFG_TYPE_SUPPORTED];
+
+#if defined (FEATURE_SUPPORT_PASSPOINT)
 static wifi_HS2Settings_t hs2Settings[MAX_AP_INDEX + 1];
 static BOOL hs2SettingsStored;
+#endif
 
 void wifi_anqp_dbg_print(int level, char *format, ...)
 {
@@ -195,9 +198,9 @@ void callback_anqp_gas_init_frame_received(int ap_index, mac_address_t sta, unsi
         return;
     }
 
+#if defined (FEATURE_SUPPORT_PASSPOINT)
     BOOL enabled;
     INT rc;
-#if defined (FEATURE_SUPPORT_PASSPOINT)
     rc = wifi_getApInterworkingServiceEnable(ap_index, &enabled);
     if (rc == RETURN_OK)
     {
@@ -353,7 +356,7 @@ void callback_anqp_gas_init_frame_received(int ap_index, mac_address_t sta, unsi
     }
 }
 
-INT wifi_anqp_request_callback_register(wifi_anqp_request_callback_t *anqpReqCallback)
+INT wifi_anqp_request_callback_register(wifi_anqp_request_callback_t anqpReqCallback)
 {
     wifi_device_callbacks_t *callbacks;
 
@@ -410,8 +413,6 @@ INT wifi_anqpSendResponse(UINT apIndex, mac_address_t sta, unsigned char token, 
     wifi_anqp_element_format_t *anqp_info = NULL;
     wifi_hs_2_anqp_element_format_t *anqp_hs_2_info = NULL;
 
-    signed short length = 0;
-
     while (head != NULL)
     {
         elem = head->value;
@@ -460,7 +461,7 @@ INT wifi_anqpSendResponse(UINT apIndex, mac_address_t sta, unsigned char token, 
             if (elem->data && elem->len)
             {
                 total_length += sizeof(wifi_hs_2_anqp_element_format_t) + elem->len;
-                wifi_anqp_dbg_print("%s:%d: anqp_hs_2_info elem length: %hu\n", __func__, __LINE__, elem->len);
+                wifi_anqp_dbg_print(1, "%s:%d: anqp_hs_2_info elem length: %hu\n", __func__, __LINE__, elem->len);
                 //8179 +13(gas frame header = 8192)
                 if (total_length > MAX_BUFF - sizeof(wifi_anqpResponseFrame_t))
                 {
@@ -471,7 +472,7 @@ INT wifi_anqpSendResponse(UINT apIndex, mac_address_t sta, unsigned char token, 
                 memset((unsigned char *)anqp_hs_2_info, 0, sizeof(wifi_hs_2_anqp_element_format_t) + elem->len);
                 anqp_hs_2_info->info_id = wifi_anqp_element_name_vendor_specific;
                 anqp_hs_2_info->len = elem->len + 6;
-                wifi_anqp_dbg_print("%s:%d: anqp_hs_2_info length: %hu\n", __func__, __LINE__, anqp_hs_2_info->len);
+                wifi_anqp_dbg_print(1, "%s:%d: anqp_hs_2_info length: %hu\n", __func__, __LINE__, anqp_hs_2_info->len);
                 anqp_hs_2_info->type = 0x11;
                 anqp_hs_2_info->subtype = elem->u.anqp_hs_id;
                 anqp_hs_2_info->reserved = 0x00;
@@ -547,10 +548,10 @@ INT wifi_anqpSendResponse(UINT apIndex, mac_address_t sta, unsigned char token, 
         free(tmp);
         tmp = NULL;
     }
-
+ 
+#if defined (FEATURE_SUPPORT_PASSPOINT)
     BOOL enabled;
     INT rc;
-#if defined (FEATURE_SUPPORT_PASSPOINT)    
     rc = wifi_getApInterworkingServiceEnable(apIndex, &enabled);
     if (rc == RETURN_OK)
     {
@@ -616,7 +617,6 @@ INT wifi_anqpSendResponse(UINT apIndex, mac_address_t sta, unsigned char token, 
     memcpy(anqp_gas_initial_response_frame->rsp_body, anqpBuffer, total_length);
 
     ULONG hm_channel = 0;
-    ULONG ch_freq = 0;
     UINT radioIndex = apIndex % 2;
     wifi_getRadioChannel(radioIndex, &hm_channel);
     wifi_anqp_dbg_print(1, "%s:%d: gathered channel for sending the frame out: %lu\n", __func__, __LINE__, hm_channel);
@@ -661,10 +661,10 @@ void *wifi_anqpTestFrameHandler(void *arg)
 {
     wifi_anqp_dbg_print(1, "%s:%d: wifi_anqpTestFrameHandler entry:    \n", __func__, __LINE__);
     int sockfd;
-    int ret;
+    int ret = RETURN_OK;
     char interface_name[32];
     unsigned char msg[1024];
-    size_t len = 0, tlv_len = 0;
+    size_t len = 0;
     wifi_test_command_id_t cmd;
     mac_address_t bmac;
     unsigned char frame[128];
@@ -676,13 +676,12 @@ void *wifi_anqpTestFrameHandler(void *arg)
 
     struct sockaddr_in saddr;
     socklen_t slen;
-    int option = 1;
     unsigned short port = 8889;
 
     if ((sockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0)
     {
         wifi_anqp_dbg_print(1, "%s:%d: Error opening raw socket , err:%d\n", __func__, __LINE__, errno);
-        return;
+        return NULL;
     }
 
     memset(&saddr, 0, sizeof(struct sockaddr_in));
@@ -694,7 +693,7 @@ void *wifi_anqpTestFrameHandler(void *arg)
     {
         wifi_anqp_dbg_print(1, "%s:%d: Error binding to interface, err:%d\\n", __func__, __LINE__, errno);
         close(sockfd);
-        return;
+        return NULL;
     }
 
     while (exit == false)
@@ -774,9 +773,10 @@ void *wifi_anqpTestFrameHandler(void *arg)
     close(sockfd);
 
     printf("%s:%d: Exit, bytes sent: %d\n", __func__, __LINE__, ret);
+    return arg;
 }
 
-wifi_anqpStartReceivingTestFrame()
+void wifi_anqpStartReceivingTestFrame()
 {
     pthread_t frame_recv_tid;
 
@@ -792,7 +792,6 @@ int wifi_anqpStartTest(unsigned int apIndex, mac_address_t sta)
     size_t len = 0, tlv_len = 0;
     wifi_tlv_t *tlv;
     unsigned short port = 8889;
-    int option = 1;
     //All ANQP HS2 Query Types defined in RDKB-16611 and RDKB-1317
     unsigned char test_data[42] = {
         0x04, 0x0a, 0x1a, 0x6c, 0x02, 0x00, 0x00, 0x22, 0x00, 0x00, 0x01, 0x0e, 0x00, 0x01, 0x01, 0x0c, 0x01,
@@ -825,17 +824,17 @@ int wifi_anqpStartTest(unsigned int apIndex, mac_address_t sta)
 
     tlv = (wifi_tlv_t *)&msg[sizeof(wifi_common_hal_test_signature)];
 
-    tlv = set_tlv(tlv, wifi_test_attrib_cmd, sizeof(wifi_test_command_id_t), &cmd);
+    tlv = set_tlv((unsigned char*)tlv, wifi_test_attrib_cmd, sizeof(wifi_test_command_id_t), (unsigned char*)&cmd);
     tlv_len += (4 + sizeof(wifi_test_command_id_t));
 
     sprintf(interface_name, "ath%d", apIndex);
-    tlv = set_tlv(tlv, wifi_test_attrib_vap_name, IFNAMSIZ, interface_name);
+    tlv = set_tlv((unsigned char*)tlv, wifi_test_attrib_vap_name, IFNAMSIZ, interface_name);
     tlv_len += (4 + IFNAMSIZ);
 
-    tlv = set_tlv(tlv, wifi_test_attrib_sta_mac, sizeof(mac_address_t), sta);
+    tlv = set_tlv((unsigned char*)tlv, wifi_test_attrib_sta_mac, sizeof(mac_address_t), sta);
     tlv_len += (4 + sizeof(mac_address_t));
 
-    tlv = set_tlv(tlv, wifi_test_attrib_raw, sizeof(test_data), test_data);
+    tlv = set_tlv((unsigned char*)tlv, wifi_test_attrib_raw, sizeof(test_data), test_data);
     tlv_len += (4 + sizeof(test_data));
 
     len += tlv_len;

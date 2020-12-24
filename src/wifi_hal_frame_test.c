@@ -60,7 +60,7 @@ int wifi_send_test_frame(unsigned char *frame, size_t frame_len, frame_test_arg_
    int ret, sockfd;
    struct sockaddr_in sockaddr;
    unsigned char msg[2048];
-   unsigned int len, tlv_len;
+   unsigned int len, tlv_len = 0;
    wifi_tlv_t *tlv;
    unsigned short port = 8888;
 
@@ -82,21 +82,21 @@ int wifi_send_test_frame(unsigned char *frame, size_t frame_len, frame_test_arg_
 
     tlv = (wifi_tlv_t *)&msg[sizeof(wifi_common_hal_test_signature)];
 
-    tlv = set_tlv(tlv, wifi_test_attrib_cmd, sizeof(wifi_test_command_id_t), &cmd);
+    tlv = set_tlv((unsigned char*)tlv, wifi_test_attrib_cmd, sizeof(wifi_test_command_id_t), (unsigned char*)&cmd);
     tlv_len += (4 + sizeof(wifi_test_command_id_t));
 
-    tlv = set_tlv(tlv, wifi_test_attrib_vap_name, IFNAMSIZ, arg->interface_name);
+    tlv = set_tlv((unsigned char*)tlv, wifi_test_attrib_vap_name, IFNAMSIZ, (unsigned char*)arg->interface_name);
     tlv_len += (4 + IFNAMSIZ);
 
 
-    tlv = set_tlv(tlv, wifi_test_attrib_sta_mac, sizeof(mac_address_t), arg->mac);
+    tlv = set_tlv((unsigned char*)tlv, wifi_test_attrib_sta_mac, sizeof(mac_address_t), arg->mac);
     tlv_len += (4 + sizeof(mac_address_t));
 
-    tlv = set_tlv(tlv, wifi_test_attrib_direction, 1, &dir);
+    tlv = set_tlv((unsigned char*)tlv, wifi_test_attrib_direction, 1, (unsigned char*)&dir);
     tlv_len += (1 + sizeof(mac_address_t));
 
 
-    tlv = set_tlv(tlv, wifi_test_attrib_raw, frame_len, frame);
+    tlv = set_tlv((unsigned char*)tlv, wifi_test_attrib_raw, frame_len, frame);
     tlv_len += (4 + frame_len);
 
     len += tlv_len;
@@ -155,7 +155,7 @@ int parse_data_frame(struct ieee80211_frame *frame, size_t frame_len, frame_test
                     len -= sizeof(llc_hdr_t);
 
                                        // There is a FCS of 4 bytes at the end, take it out
-                    rc = wifi_send_test_frame(frame, frame_len - 4, arg, matching_cmd, dir);
+                    rc = wifi_send_test_frame((unsigned char*)frame, frame_len - 4, arg, matching_cmd, dir);
                 }
             }
         }
@@ -167,7 +167,7 @@ int parse_data_frame(struct ieee80211_frame *frame, size_t frame_len, frame_test
 int parse_mgmt_frame(struct ieee80211_frame *frame, size_t len, frame_test_arg_t *arg, wifi_direction_t dir)
 {
        wifi_test_command_id_t  matching_cmd; 
-       
+       memset(&matching_cmd, 0, sizeof(wifi_test_command_id_t));
        if (frame->i_fc[0] == IEEE80211_FC0_SUBTYPE_PROBE_REQ) {
                matching_cmd = wifi_test_command_id_probe_req;
        } else if (frame->i_fc[0] == IEEE80211_FC0_SUBTYPE_PROBE_RESP) {
@@ -190,7 +190,7 @@ int parse_mgmt_frame(struct ieee80211_frame *frame, size_t len, frame_test_arg_t
 
 
        // There is a FCS of 4 bytes at the end, take it out
-       return wifi_send_test_frame(frame, len - 4, arg, matching_cmd, dir);
+       return wifi_send_test_frame((unsigned char*)frame, len - 4, arg, matching_cmd, dir);
 
 }
 
@@ -237,7 +237,7 @@ int parse_frame(unsigned char *data, size_t len, frame_test_arg_t *arg, wifi_dir
     // go to the start of the frame
     frame = (struct ieee80211_frame *)(data + radiotap_hdr->it_len);
     len -= radiotap_hdr->it_len;
-   
+    memset(&ap_mac, 0, sizeof(mac_address_t));
        get_mac_address(arg->interface_name, ap_mac); 
     if (memcmp(arg->mac, null_mac, sizeof(mac_address_t)) != 0) {
         if (memcmp(frame->i_addr2, arg->mac, sizeof(mac_address_t)) == 0) {
@@ -470,4 +470,5 @@ int test_mgmt_frame_rx (unsigned int ap_index, mac_address_t sta_mac, const char
        } else if (strcmp(proto, "dpp_auth") == 0) {
         mgmt_frame_received_callback(ap_index, sta_mac, dpp_auth, sizeof(dpp_auth), WIFI_MGMT_FRAME_TYPE_ACTION, wifi_direction_uplink);
     }
+    return RETURN_OK;
 }

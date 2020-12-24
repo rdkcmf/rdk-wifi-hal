@@ -142,6 +142,25 @@ typedef struct {
 } wifi_80211ActionRequestData_t;
 
 wifi_device_callbacks_t *get_device_callbacks();
+
+void wifi_dpp_dbg_print(char *format, ...);
+
+void wifi_rdk_hal_dbg_print(char *format, ...);
+
+void callback_dpp_config_req_frame_received(int ap_index, mac_address_t sta, unsigned char token, unsigned char  *attrib, unsigned int len);
+
+void callback_anqp_gas_init_frame_received(int ap_index, mac_address_t sta, unsigned char token, unsigned char *attrib, unsigned int len);
+
+void callback_dpp_public_action_frame_received(int ap_index, mac_address_t sta, wifi_dppPublicActionFrameBody_t  *frame, unsigned int len);
+
+void to_mac_bytes   (mac_addr_str_t key, mac_address_t bmac);
+
+int create_test_socket();
+
+unsigned short channel_to_frequency(unsigned int channel);
+
+char *get_formatted_time(char *time);
+
 #endif //_RDK_HAL_FRAMEWORK_H_
 
 

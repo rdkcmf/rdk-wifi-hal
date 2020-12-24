@@ -16,6 +16,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
 */
+#include <string.h>
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdlib.h>
@@ -45,6 +46,8 @@
 #include <wifi_hal.h>
 #include "wifi_hal_rdk.h"
 #include "wifi_hal_rdk_framework.h"
+
+int data_frame_received_callback(INT ap_index, mac_address_t sta_mac, UCHAR *frame, UINT len, wifi_dataFrameType_t type, wifi_direction_t dir);
 
 extern unsigned char wifi_common_hal_test_signature[8];
 
@@ -96,7 +99,7 @@ INT start_receiving_test_frames()
 
     if ((sockfd = create_test_socket()) < 0) {
         wifi_rdk_hal_dbg_print("%s:%d: Socket create failed\n", __func__, __LINE__);
-        return NULL;
+        return RETURN_ERR;
 
     }
 

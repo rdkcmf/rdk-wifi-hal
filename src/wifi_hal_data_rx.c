@@ -40,20 +40,20 @@ int handle_8021x_frame(INT ap_index, mac_address_t sta_mac, unsigned char *frame
 
     if (IEEE80211_IS_DSTODS(ieeehdr)) {
         // the header has 4 MAC addresses because this is DS to DS
-        data = (unsigned char *)frame + sizeof(struct ieee80211_frame_addr4);
+        data = (wifi_8021x_frame_t *)((unsigned char *)frame + sizeof(struct ieee80211_frame_addr4));
         len -= sizeof(struct ieee80211_frame_addr4);
     } else {
-        data = (unsigned char *)frame + sizeof(struct ieee80211_frame);
+        data = (wifi_8021x_frame_t *)((unsigned char *)frame + sizeof(struct ieee80211_frame));
         len -= sizeof(struct ieee80211_frame);
     }
    
     if (IEEE80211_IS_QOSDATA(ieeehdr)) {
-        data = (unsigned char *)data + sizeof(struct ieee80211_qoscntl);
+        data = (wifi_8021x_frame_t *)((unsigned char *)data + sizeof(struct ieee80211_qoscntl));
         len -= sizeof(struct ieee80211_qoscntl);
     }
    
     if ((ieeehdr)->i_fc[1] & IEEE80211_FC1_PROTECTED) {
-        data = (unsigned char *)data + sizeof(ccmp_hdr_t);
+        data = (wifi_8021x_frame_t *)((unsigned char *)data + sizeof(ccmp_hdr_t));
         len -= sizeof(ccmp_hdr_t);
     } else {
         // if this is plain text and length of the data is more than LLC check if there is an LLC header
@@ -61,7 +61,7 @@ int handle_8021x_frame(INT ap_index, mac_address_t sta_mac, unsigned char *frame
             llc_hdr = (llc_hdr_t *)data;
             if ((llc_hdr->dsap == 0xaa) && (llc_hdr->ssap == 0xaa)) {
                 if ((llc_hdr->type[0] == 0x88) && (llc_hdr->type[1] == 0x8e)) {
-                    data = (unsigned char *)data + sizeof(llc_hdr_t);
+                    data = (wifi_8021x_frame_t *)((unsigned char *)data + sizeof(llc_hdr_t));
                     len -= sizeof(llc_hdr_t);
                 }
             }
@@ -109,6 +109,10 @@ int handle_8021x_frame(INT ap_index, mac_address_t sta_mac, unsigned char *frame
                        printf("%s:%d: Received eapol key packet: %s\n", __func__, __LINE__, msg);
                        break;
        }
+#else
+       (void)(eap);
+       (void)(key);
+       (void)(msg); //unused variables
 #endif
 
        if (dir == wifi_direction_downlink) {

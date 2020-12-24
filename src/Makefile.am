@@ -19,7 +19,7 @@
 AM_CFLAGS = -D_ANSC_LINUX
 AM_CFLAGS += -D_ANSC_USER
 AM_CFLAGS += -D_ANSC_LITTLE_ENDIAN_
-
+AM_CFLAGS += -Wall -Werror -Wextra -Wno-unused-parameter -Wno-pointer-sign -Wno-sign-compare -Wno-type-limits -Wno-format-truncation
 AM_CPPFLAGS = -Wall -Werror
 SUBDIRS = .
 ACLOCAL_AMFLAGS = -I m4
@@ -27,6 +27,7 @@ hardware_platform = i686-linux-gnu
 
 lib_LTLIBRARIES = librdk_wifihal.la
 librdk_wifihal_la_CPPFLAGS = -I$(top_srcdir)/./include $(CPPFLAGS) -I$(top_srcdir)/../util_crypto
+librdk_wifihal_la_CFLAGS = -Wall -Werror -Wextra -Wno-unused-parameter -Wno-pointer-sign -Wno-sign-compare -Wno-type-limits -Wno-format-truncation
 librdk_wifihal_la_SOURCES = wifi_hal_rx_test.c wifi_hal_data_rx.c wifi_hal_mgmt_rx.c wifi_hal_dpp.c wifi_hal_anqp.c wifi_hal_frame_test.c ../util_crypto/aes_siv.c wifi_tlv.c wifi_hal_rdk_util.c
 librdk_wifihal_la_LDFLAGS = -lm -lcjson -lssl -lcrypto
 

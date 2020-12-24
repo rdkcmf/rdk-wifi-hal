@@ -16,6 +16,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
 */
+#include <string.h>
 #include "wifi_hal_rdk_framework.h"
 #include "wifi_hal_rdk.h"
 #include "ieee80211.h"
@@ -32,6 +33,7 @@ int handle_assoc_rsp_frame(INT ap_index, mac_address_t sta_mac, unsigned char *f
     if (callbacks->assoc_rsp_frame_tx_callback != NULL) {
         callbacks->assoc_rsp_frame_tx_callback(ap_index, sta_mac, frame, len);
     }
+    return RETURN_OK;
 }
 
 int handle_assoc_req_frame(INT ap_index, mac_address_t sta_mac, unsigned char *frame, UINT len) 
@@ -43,6 +45,7 @@ int handle_assoc_req_frame(INT ap_index, mac_address_t sta_mac, unsigned char *f
     if (callbacks->assoc_req_frame_rx_callback != NULL) {
         callbacks->assoc_req_frame_rx_callback(ap_index, sta_mac, frame, len);
     }
+    return RETURN_OK;
 }
 
 int handle_auth_frame(INT ap_index, mac_address_t sta_mac, unsigned char *frame, UINT len, wifi_direction_t dir) 
@@ -60,6 +63,7 @@ int handle_auth_frame(INT ap_index, mac_address_t sta_mac, unsigned char *frame,
             callbacks->auth_frame_rx_callback(ap_index, sta_mac, frame, len);
         }
     }
+    return RETURN_OK;
 }
 
 int handle_gas_init_public_action_frame(INT ap_index, mac_address_t sta_mac, unsigned char *public_action_data, UINT len)
@@ -75,7 +79,7 @@ int handle_gas_init_public_action_frame(INT ap_index, mac_address_t sta_mac, uns
 
 	printf("%s:%d: advertisement proto element id:%d length:%d\n", __func__, __LINE__, adv_proto_elem->id, adv_proto_elem->len);
 
-	pquery_len = (unsigned char *)&adv_proto_elem->proto_tuple + adv_proto_elem->len;
+	pquery_len = (unsigned short*)((unsigned char *)&adv_proto_elem->proto_tuple + adv_proto_elem->len);
 	query_len = *pquery_len;
 	query_req = (unsigned char *)((unsigned char *)pquery_len + sizeof(unsigned short));
 
@@ -98,6 +102,7 @@ int handle_gas_init_public_action_frame(INT ap_index, mac_address_t sta_mac, uns
 		default:
 			break;
 	}
+        return RETURN_OK;
 }
 
 int handle_vendor_public_action_frame(INT ap_index, mac_address_t sta_mac, unsigned char *public_action_data, UINT len)
@@ -111,10 +116,11 @@ int handle_vendor_public_action_frame(INT ap_index, mac_address_t sta_mac, unsig
 	if ((frame != NULL) && (memcmp(frame_oui->oui, dpp_oui, sizeof(dpp_oui)) == 0) 
 				&& (frame_oui->oui_type == DPP_OUI_TYPE)) {
       	printf("%s:%d callback_dpp_auth_frame_received, length:%d\n", __func__, __LINE__, len);
-       	callback_dpp_public_action_frame_received(ap_index, sta_mac, public_action_data, len);
+       	callback_dpp_public_action_frame_received(ap_index, sta_mac, (wifi_dppPublicActionFrameBody_t*)public_action_data, len);
     } else {
 		// not dpp frame
 	}
+      return RETURN_OK;
 }
 
 int	handle_public_action_frame	(INT ap_index, mac_address_t sta_mac, wifi_publicActionFrameHdr_t *ppublic_hdr, UINT len)
@@ -139,6 +145,7 @@ int	handle_public_action_frame	(INT ap_index, mac_address_t sta_mac, wifi_public
 		default:
 			break;
     }
+    return RETURN_OK;
 }
 
 int mgmt_frame_received_callback(INT ap_index, mac_address_t sta_mac, UCHAR *frame, UINT len, wifi_mgmtFrameType_t type, wifi_direction_t dir)
@@ -152,7 +159,7 @@ int mgmt_frame_received_callback(INT ap_index, mac_address_t sta_mac, UCHAR *fra
 		switch (paction->cat) {
 
 			case wifi_action_frame_type_public:
-				handle_public_action_frame(ap_index, sta_mac, frame, len);
+				handle_public_action_frame(ap_index, sta_mac, (wifi_publicActionFrameHdr_t *)frame, len);
 				break;
 			default:
 				break;

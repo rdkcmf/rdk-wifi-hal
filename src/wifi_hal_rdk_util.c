@@ -21,6 +21,7 @@
 #include <string.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
+#include <sys/time.h>
 #include <linux/types.h>
 #include <asm/byteorder.h>
 #include <stdint.h>
@@ -52,7 +53,7 @@
 #include <aes_siv.h>
 #include <wifi_hal_rdk_framework.h>
 
-wifi_device_callbacks_t    g_device_callbacks = {0};
+wifi_device_callbacks_t    g_device_callbacks;
 
 wifi_device_callbacks_t *get_device_callbacks()
 {
@@ -86,6 +87,6 @@ char *get_formatted_time(char *time)
 
     strftime(tmp, 128, "%y%m%d-%T", tm_info);
 
-    snprintf(time, 128, "%s.%06d", tmp, tv_now.tv_usec);
+    snprintf(time, 128, "%s.%06lu", tmp, tv_now.tv_usec);
     return time;
 }

@@ -203,7 +203,7 @@ base64urldecode (unsigned char *data, unsigned char *burl, int len)
 
 unsigned short channel_to_frequency(unsigned int channel)
 {
-    unsigned short frequency;
+    unsigned short frequency = 0;
 
     if (channel <= 14) {
         frequency = 2412 + 5*(channel - 1);
@@ -229,7 +229,6 @@ unsigned short freq_to_channel(unsigned int freq)
     unsigned int temp = 0;
     int sec_channel = -1;
     unsigned int op_class = 0;
-    unsigned short ret;
     if(freq)
     {
         if (freq >= 2412 && freq <= 2472)
@@ -251,7 +250,7 @@ unsigned short freq_to_channel(unsigned int freq)
         if (freq >= 4900 && freq < 5000) 
         {
             if ((freq - 4000) % 5)
-                return NULL;
+                return 0;
             temp = (freq - 4000) / 5;
             op_class = 0; /* TODO */
             return ((((short)temp) << 8) | (0x00ff & op_class));
@@ -266,7 +265,7 @@ unsigned short freq_to_channel(unsigned int freq)
         if (freq >= 5180 && freq <= 5240) 
         {
             if ((freq - 5000) % 5)
-                return NULL;
+                return 0;
  
             if (sec_channel == 1)
                 op_class = 116;
@@ -282,7 +281,7 @@ unsigned short freq_to_channel(unsigned int freq)
         if (freq >= 5260 && freq <= 5320) 
         {
             if ((freq - 5000) % 5)
-                return NULL;
+                return 0;
 
             if (sec_channel == 1)
                 op_class = 119;
@@ -325,7 +324,7 @@ unsigned short freq_to_channel(unsigned int freq)
 
     }
     printf("error: No case for given Freq\n");
-    return NULL;
+    return 0;
 }
 
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
@@ -505,7 +504,6 @@ int dpp_build_connector(wifi_device_dpp_context_t *dpp_ctx, char* connector, boo
     unsigned char b64x[SHA512_DIGEST_LENGTH];
     unsigned char b64y[SHA512_DIGEST_LENGTH];
     unsigned char *bn;
-    char *crv;
     wifi_dpp_configuration_object_t *obj = &dpp_ctx->config;
     wifi_dpp_instance_t *instance = dpp_ctx->session_data.instance;
 
@@ -625,7 +623,7 @@ int dpp_build_connector(wifi_device_dpp_context_t *dpp_ctx, char* connector, boo
 
 void dpp_build_config(wifi_device_dpp_context_t *ctx, char* str)
 {
- 	char field_name[512], value[512], *out;
+ 	char *out;
 	char reconfig_connector[1024];
 	wifi_dpp_configuration_object_t *obj = &ctx->config;
 
@@ -960,8 +958,7 @@ get_config_frame_wrapped_data(unsigned char *ptr, unsigned int attrib_len, wifi_
 {
     siv_ctx ctx;
     wifi_tlv_t *tlv;
-    unsigned int non_wrapped_len;;
-	int decrypted_len;
+    int decrypted_len;
 
     switch(instance->digestlen) {
         case SHA256_DIGEST_LENGTH:
@@ -1048,7 +1045,6 @@ set_config_frame_wrapped_data(unsigned char *ptr, unsigned int non_wrapped_len, 
     siv_ctx ctx;
     unsigned char plain[2048];
     wifi_tlv_t *tlv;
-    unsigned char caps = 2;
     unsigned int wrapped_len = 0;
     wifi_tlv_t *wrapped_tlv;
 	char json[1024];
@@ -1070,13 +1066,13 @@ set_config_frame_wrapped_data(unsigned char *ptr, unsigned int non_wrapped_len, 
 
     tlv = (wifi_tlv_t *)plain;
 
-    tlv = set_tlv(tlv, wifi_dpp_attrib_id_enrollee_nonce, instance->noncelen, instance->enrollee_nonce);
+    tlv = set_tlv((unsigned char*)tlv, wifi_dpp_attrib_id_enrollee_nonce, instance->noncelen, instance->enrollee_nonce);
     wrapped_len += (4 + instance->noncelen);
 
     if (NULL != dpp_ctx) {
 	    memset(json, 0, 1024);
 	    dpp_build_config(dpp_ctx, json);
-        tlv = set_tlv(tlv, wifi_dpp_attrib_id_config_object, strlen(json), json);
+        tlv = set_tlv((unsigned char*)tlv, wifi_dpp_attrib_id_config_object, strlen(json), json);
         wrapped_len += (4 + strlen(json));
     }
 
@@ -1122,13 +1118,13 @@ set_auth_frame_wrapped_data(wifi_dppPublicActionFrameBody_t *frame, unsigned int
     tlv = (wifi_tlv_t *)plain;
    
     if (auth_init == true) { 
-        tlv = set_tlv(tlv, wifi_dpp_attrib_id_initiator_nonce, instance->noncelen, instance->initiator_nonce);
+        tlv = set_tlv((unsigned char*)tlv, wifi_dpp_attrib_id_initiator_nonce, instance->noncelen, instance->initiator_nonce);
         wrapped_len += (4 + instance->noncelen);
     
-        tlv = set_tlv(tlv, wifi_dpp_attrib_id_initiator_cap, 1, &caps);
+        tlv = set_tlv((unsigned char*)tlv, wifi_dpp_attrib_id_initiator_cap, 1, &caps);
         wrapped_len += 5;
     } else {
-        tlv = set_tlv(tlv, wifi_dpp_attrib_id_initiator_auth_tag, instance->digestlen, instance->iauth);
+        tlv = set_tlv((unsigned char*)tlv, wifi_dpp_attrib_id_initiator_auth_tag, instance->digestlen, instance->iauth);
         wrapped_len += (4 + instance->digestlen);
 
     }
@@ -1150,7 +1146,7 @@ set_auth_frame_wrapped_data(wifi_dppPublicActionFrameBody_t *frame, unsigned int
 int compute_reconfig_encryption_key(wifi_dpp_instance_t *instance)
 {
     unsigned char m[2048];
-    unsigned int primelen, offset, keylen;
+    unsigned int primelen, offset;
     unsigned char salt[SHA512_DIGEST_LENGTH];
 
 	EC_POINT_get_affine_coordinates_GFp(instance->group, instance->M, instance->m, instance->n, instance->bnctx);
@@ -1245,8 +1241,8 @@ int create_auth_tags    (wifi_dpp_instance_t *instance, char *iPubKeyInfoB64, ch
     EVP_MD_CTX *rctx = EVP_MD_CTX_new();
 #endif
     unsigned char final;
-    unsigned int offset = 0, primelen, mdlen;
-    EC_POINT *pub, *rpt, *ipt;
+    unsigned int offset = 0, primelen = 0, mdlen = 0;
+    EC_POINT *pub, *rpt;
     unsigned char keyasn1[1024];
     unsigned char tag[SHA512_DIGEST_LENGTH];
     const unsigned char *key;
@@ -1304,7 +1300,7 @@ int create_auth_tags    (wifi_dpp_instance_t *instance, char *iPubKeyInfoB64, ch
     EVP_DigestUpdate(ictx, tag, primelen);
 #endif
 
-    if ((pub = EC_KEY_get0_public_key(instance->initiator_proto_key)) == NULL) {
+    if ((pub = (EC_POINT*)EC_KEY_get0_public_key(instance->initiator_proto_key)) == NULL) {
         printf("%s:%d: Failed to get public key\n", __func__, __LINE__);
 #if OPENSSL_VERSION_NUMBER > 0x10100000L
 	EVP_MD_CTX_free(ictx);
@@ -1369,7 +1365,7 @@ int create_auth_tags    (wifi_dpp_instance_t *instance, char *iPubKeyInfoB64, ch
 	EVP_MD_CTX_free(ictx);
 	EVP_MD_CTX_free(rctx);
 #endif
-        return NULL;
+        return RETURN_ERR;
     }
 
     key = keyasn1;
@@ -1378,7 +1374,7 @@ int create_auth_tags    (wifi_dpp_instance_t *instance, char *iPubKeyInfoB64, ch
     EC_KEY_set_conv_form(responder_boot_key, POINT_CONVERSION_COMPRESSED);
     EC_KEY_set_asn1_flag(responder_boot_key, OPENSSL_EC_NAMED_CURVE);
 
-    if ((rpt = EC_KEY_get0_public_key(responder_boot_key)) == NULL) { 
+    if ((rpt = (EC_POINT*)EC_KEY_get0_public_key(responder_boot_key)) == NULL) { 
         printf("%s:%d: Failed to get responder boot key point\n", __func__, __LINE__);
 #if OPENSSL_VERSION_NUMBER > 0x10100000L
 	EVP_MD_CTX_free(ictx);
@@ -1413,7 +1409,7 @@ int create_auth_tags    (wifi_dpp_instance_t *instance, char *iPubKeyInfoB64, ch
 	EVP_MD_CTX_free(ictx);
 	EVP_MD_CTX_free(rctx);
 #endif
-        return NULL;
+        return RETURN_ERR;
     }
 
     key = keyasn1;
@@ -1652,7 +1648,7 @@ int wifi_dppCreateReconfigContext(unsigned int ap_index, char *net_access_key, w
 	}
 
     printf("%s:%d Here\n", __func__, __LINE__);
-    instance->pt = EC_KEY_get0_public_key(instance->key);
+    instance->pt = (EC_POINT*)EC_KEY_get0_public_key(instance->key);
     if (instance->pt == NULL) {
 		delete_dpp_reconfig_context(ap_index, instance);
         printf("%s:%d Could not get access public key\n", __func__, __LINE__);
@@ -1667,7 +1663,7 @@ int wifi_dppCreateReconfigContext(unsigned int ap_index, char *net_access_key, w
     instance->y = BN_new();
 	instance->prime = BN_new();
 
-	group = EC_KEY_get0_group(instance->key);
+	group = (EC_GROUP*)EC_KEY_get0_group(instance->key);
 
 	if (!EC_GROUP_get_curve_GFp(group, instance->prime, NULL, NULL, instance->bnctx)) {
 		delete_dpp_reconfig_context(ap_index, instance);
@@ -1793,7 +1789,7 @@ int wifi_dppCreateCSignIntance(unsigned int ap_index, char *c_sign_key, wifi_dpp
 	}
 
     printf("%s:%d Here\n", __func__, __LINE__);
-    instance->pt = EC_KEY_get0_public_key(instance->key);
+    instance->pt = (EC_POINT*)EC_KEY_get0_public_key(instance->key);
     if (instance->pt == NULL) {
 		delete_dpp_csign_instance(ap_index, instance);
         printf("%s:%d Could not get access public key\n", __func__, __LINE__);
@@ -1804,7 +1800,7 @@ int wifi_dppCreateCSignIntance(unsigned int ap_index, char *c_sign_key, wifi_dpp
     instance->y = BN_new();
 	instance->prime = BN_new();
 
-	instance->group = EC_KEY_get0_group(instance->key);
+	instance->group = (EC_GROUP*)EC_KEY_get0_group(instance->key);
 
 	if (!EC_GROUP_get_curve_GFp(instance->group, instance->prime, NULL, NULL, instance->bnctx)) {
 		delete_dpp_csign_instance(ap_index, instance);
@@ -1888,7 +1884,7 @@ wifi_dpp_session_data_t *create_dpp_session_instance(wifi_device_dpp_context_t *
     wifi_dpp_session_data_t    *data = NULL;
     unsigned int asn1len;
     EC_KEY *responder_key, *initiator_key;
-    const EC_POINT *ipt, *rpt;
+    const EC_POINT *ipt, *rpt = NULL;
     const BIGNUM *proto_priv;
 	wifi_dpp_instance_t *instance;
 
@@ -1996,7 +1992,7 @@ wifi_dpp_session_data_t *create_dpp_session_instance(wifi_device_dpp_context_t *
             break;
         default:
             printf("%s:%d nid:%d not handled\n", __func__, __LINE__, instance->nid);
-            return -1;
+            return NULL;
     }
 
     instance->noncelen = instance->digestlen/2;
@@ -2116,7 +2112,7 @@ wifi_dppProcessReconfigAuthResponse(wifi_device_dpp_context_t *dpp_ctx)
     data = &dpp_ctx->session_data;
     instance = (wifi_dpp_instance_t *)data->instance;
 
-    frame = dpp_ctx->received_frame.frame;
+    frame = (wifi_dppPublicActionFrameBody_t*)dpp_ctx->received_frame.frame;
     len = dpp_ctx->received_frame.length;
 
     attrib_len = len - sizeof(wifi_dppPublicActionFrameBody_t);
@@ -2196,7 +2192,7 @@ wifi_dppProcessReconfigAuthResponse(wifi_device_dpp_context_t *dpp_ctx)
 	
 	EC_POINT_add(instance->group, instance->N, instance->responder_proto_pt, instance->responder_connector, instance->bnctx);
 
-	priv_bn = EC_KEY_get0_private_key(recfg->key);
+	priv_bn = (BIGNUM*)EC_KEY_get0_private_key(recfg->key);
 	if (priv_bn == NULL) {
         printf("%s:%d: Failed to get priv key big number\n", __func__, __LINE__);
         dpp_ctx->enrollee_status = RESPONDER_STATUS_AUTH_FAILURE;
@@ -2206,7 +2202,7 @@ wifi_dppProcessReconfigAuthResponse(wifi_device_dpp_context_t *dpp_ctx)
 
 	if (EC_POINT_mul(instance->group, instance->M, NULL, instance->N, priv_bn, instance->bnctx) == 0) {
     	printf("%s:%d unable to get x, y of the curve\n", __func__, __LINE__);
-        return NULL;
+        return RETURN_ERR;
     }
 
     wifi_dpp_dbg_print("%s:%d: EC point multiplied\n", __func__, __LINE__);
@@ -2261,7 +2257,7 @@ wifi_dppProcessReconfigAnnouncement(unsigned char *frame, unsigned int len, unsi
 	action = (wifi_dppPublicActionFrameBody_t *)frame;
 
 	tlv = (wifi_tlv_t *)action->attrib;
-    tlv = get_tlv(tlv, wifi_dpp_attrib_id_C_sign_key_hash, len);
+        tlv = get_tlv((unsigned char*)tlv, wifi_dpp_attrib_id_C_sign_key_hash, len);
 	if (tlv == NULL) {
 		return RETURN_ERR;
 
@@ -2287,17 +2283,20 @@ wifi_dppProcessConfigResult(wifi_device_dpp_context_t *dpp_ctx)
     siv_ctx ctx;
     wifi_tlv_t *tlv = NULL;
     wifi_dppPublicActionFrameBody_t  *frame;
-    unsigned int len, tlv_len = 0;
+    unsigned int len;
     wifi_dpp_session_data_t *data = NULL;
     wifi_dpp_instance_t *instance;
-	unsigned char plain[128], status;
-	unsigned char buff[256];
-	wifi_tlv_t *wrapped_tlv;
+    unsigned char plain[128], status;
+#ifdef CONFIG_RESULT_SIMULATE
+    unsigned int tlv_len = 0;
+    unsigned char buff[256];
+    wifi_tlv_t *wrapped_tlv;
+#endif
 
     data = &dpp_ctx->session_data;
     instance = (wifi_dpp_instance_t *)data->instance;
 
-    frame = dpp_ctx->received_frame.frame;
+    frame = (wifi_dppPublicActionFrameBody_t*)dpp_ctx->received_frame.frame;
     len = dpp_ctx->received_frame.length;
 
 #ifdef CONFIG_RESULT_SIMULATE
@@ -2424,7 +2423,7 @@ wifi_dppProcessConfigRequest(wifi_device_dpp_context_t *ctx)
 
     tlv = (wifi_tlv_t *)buff;
 
-    tlv = get_tlv(tlv, wifi_dpp_attrib_id_enrollee_nonce, decrypted_len);
+    tlv = get_tlv((unsigned char*)tlv, wifi_dpp_attrib_id_enrollee_nonce, decrypted_len);
     if (tlv == NULL) {
 		ctx->enrollee_status = RESPONDER_STATUS_AUTH_FAILURE;
         return RETURN_ERR;
@@ -2449,7 +2448,7 @@ INT wifi_dppProcessAuthResponse(wifi_device_dpp_context_t *dpp_ctx)
     siv_ctx ctx;
     unsigned char   primary[512];
     unsigned char   secondary[512];
-    EC_KEY *responder_boot_key, *initiator_boot_key;
+    EC_KEY *responder_boot_key;
     BIGNUM  *pi;
     wifi_tlv_t *tlv = NULL;
     unsigned char status;
@@ -2462,7 +2461,7 @@ INT wifi_dppProcessAuthResponse(wifi_device_dpp_context_t *dpp_ctx)
     data = &dpp_ctx->session_data;
 	instance = (wifi_dpp_instance_t *)data->instance;
 	
-	frame = dpp_ctx->received_frame.frame;
+	frame = (wifi_dppPublicActionFrameBody_t*)dpp_ctx->received_frame.frame;
 	len = dpp_ctx->received_frame.length; 
 
 	attrib_len = len - sizeof(wifi_dppPublicActionFrameBody_t);
@@ -2503,7 +2502,7 @@ INT wifi_dppProcessAuthResponse(wifi_device_dpp_context_t *dpp_ctx)
     }
 
     key = keyasn1;
-    responder_boot_key = d2i_EC_PUBKEY(NULL, &key, asn1len);
+    responder_boot_key = d2i_EC_PUBKEY(NULL, (const unsigned char **)&key, asn1len);
 
     EC_KEY_set_conv_form(responder_boot_key, POINT_CONVERSION_COMPRESSED);
     EC_KEY_set_asn1_flag(responder_boot_key, OPENSSL_EC_NAMED_CURVE);
@@ -2553,7 +2552,7 @@ INT wifi_dppProcessAuthResponse(wifi_device_dpp_context_t *dpp_ctx)
         return RETURN_ERR;
     }
 
-    pi = EC_KEY_get0_private_key(instance->initiator_proto_key);
+    pi = (BIGNUM*)EC_KEY_get0_private_key(instance->initiator_proto_key);
     if (pi == NULL) {
         printf("%s:%d Could not get initiator protocol private point\n", __func__, __LINE__);
 		dpp_ctx->enrollee_status = RESPONDER_STATUS_AUTH_FAILURE;
@@ -2699,13 +2698,13 @@ void callback_dpp_public_action_frame_received(int ap_index, mac_address_t sta, 
 	printf("%s:%d frame->frame_type=%d\n", __func__, __LINE__, frame->frame_type);
 	
 	if (frame->frame_type == wifi_dpp_public_action_frame_type_auth_rsp) {
-    	callbacks->dpp_auth_rsp_callback(ap_index, sta, frame, len);
+    	callbacks->dpp_auth_rsp_callback(ap_index, sta, (unsigned char*)frame, len);
 	} else if (frame->frame_type == wifi_dpp_public_action_frame_type_cfg_result) {
-    	callbacks->dpp_config_result_callback(ap_index, sta, frame, len);
+    	callbacks->dpp_config_result_callback(ap_index, sta, (unsigned char*)frame, len);
 	} else if (frame->frame_type == wifi_dpp_public_action_frame_type_recfg_announcement) {
-    	callbacks->dpp_reconfig_announce_callback(ap_index, sta, frame, len);
+    	callbacks->dpp_reconfig_announce_callback(ap_index, sta, (unsigned char*)frame, len);
 	} else if (frame->frame_type == wifi_dpp_public_action_frame_type_recfg_auth_rsp) {
-    	callbacks->dpp_reconfig_auth_rsp_callback(ap_index, sta, frame, len);
+    	callbacks->dpp_reconfig_auth_rsp_callback(ap_index, sta, (unsigned char*)frame, len);
 	}
 }
 
@@ -2828,7 +2827,7 @@ wifi_dppSendReconfigAuthCnf(wifi_device_dpp_context_t *dpp_ctx)
     tlv_len += (instance->noncelen + 4);
 
     wifi_dpp_dbg_print("%s:%d Building TLV reconfig flags\n", __func__, __LINE__);
-    tlv = set_tlv((unsigned char *)tlv, wifi_dpp_attrib_id_reconfig_flags, sizeof(unsigned int), &flags);
+    tlv = set_tlv((unsigned char *)tlv, wifi_dpp_attrib_id_reconfig_flags, sizeof(unsigned int), (unsigned char*)&flags);
     tlv_len += (sizeof(unsigned int) + 4);
 
     wifi_dpp_dbg_print("%s:%d Building TLVs done\n", __func__, __LINE__);
@@ -2875,7 +2874,7 @@ wifi_dppSendReconfigAuthCnf(wifi_device_dpp_context_t *dpp_ctx)
     wifi_getRadioChannel(dpp_ctx->ap_index%2, &channel);
     data->channel = channel_to_frequency(channel);
     printf("%s:%d: credentials.keyManagement:%u \n", __func__, __LINE__, dpp_ctx->config.credentials.keyManagement);
-    data->u.reconfig_data.match_tran_id=NULL;
+    data->u.reconfig_data.match_tran_id=0;
     return RETURN_OK;
 }
 
@@ -2987,8 +2986,7 @@ wifi_dppCancel(wifi_device_dpp_context_t *ctx)
 
 wifi_dpp_session_data_t *create_dpp_reconfig_session_instance(wifi_device_dpp_context_t *ctx)
 {
-    wifi_dpp_session_data_t    *data = NULL;
-	wifi_dpp_instance_t *instance;
+        wifi_dpp_session_data_t    *data = NULL;
 	time_t t;
 
 	data = &ctx->session_data;
@@ -2996,6 +2994,8 @@ wifi_dpp_session_data_t *create_dpp_reconfig_session_instance(wifi_device_dpp_co
 	srand((unsigned int) time(&t));
 
 	data->u.reconfig_data.tran_id[0] = rand();
+
+        return data;
 }
 
 int
@@ -3062,7 +3062,7 @@ wifi_dppReconfigInitiate(wifi_device_dpp_context_t *ctx)
 	tlv_len += (conn_len + 4);
 
 	wifi_dpp_dbg_print("%s:%d Building TLV nonce\n", __func__, __LINE__);
-    tlv = set_tlv(tlv, wifi_dpp_attrib_id_initiator_nonce, instance->noncelen, instance->initiator_nonce);
+    tlv = set_tlv((unsigned char*)tlv, wifi_dpp_attrib_id_initiator_nonce, instance->noncelen, instance->initiator_nonce);
     tlv_len += (4 + instance->noncelen);
 	
 	wifi_dpp_dbg_print("%s:%d Building TLVs done\n", __func__, __LINE__);
@@ -3087,7 +3087,6 @@ wifi_dppInitiate(wifi_device_dpp_context_t *ctx)
     unsigned int asn1len;
     EC_KEY *responder_boot_key, *initiator_boot_key;
     unsigned char buff[2048];
-    unsigned char wrapped_data[128];
     unsigned int wrapped_len;
     unsigned char keyhash[SHA512_DIGEST_LENGTH];
     wifi_dppPublicActionFrame_t    *public_action_frame;
@@ -3185,7 +3184,7 @@ wifi_dppInitiate(wifi_device_dpp_context_t *ctx)
     tlv_len += (2*BN_num_bytes(instance->prime) + 4);
 
     chann_attr = freq_to_channel(channel_to_frequency(hm_channel)); //channel attrib shall be home channel
-    tlv = set_tlv(tlv, wifi_dpp_attrib_id_channel, sizeof(unsigned short), (unsigned char *)&chann_attr);
+    tlv = set_tlv((unsigned char*)tlv, wifi_dpp_attrib_id_channel, sizeof(unsigned short), (unsigned char *)&chann_attr);
     tlv_len += 6;
     
     wrapped_len = set_auth_frame_wrapped_data(&public_action_frame->public_action_body, tlv_len, instance, true);
@@ -3203,7 +3202,7 @@ wifi_dppInitiate(wifi_device_dpp_context_t *ctx)
 
     return RETURN_OK;
 }
-
+#if 0
 static unsigned char *set_mac_hdr(unsigned int ap_index, unsigned char *buff, char *dst)
 {
 	unsigned char *tmp = buff;
@@ -3252,6 +3251,7 @@ static unsigned char *set_mac_hdr(unsigned int ap_index, unsigned char *buff, ch
 	
 	return tmp;
 }
+#endif
 
 static void *wifi_dppTestFrameHandler(void *arg)
 {
@@ -3354,7 +3354,7 @@ static void *wifi_dppTestFrameHandler(void *arg)
 	return NULL;
 }
 
-wifi_dppStartReceivingTestFrame()
+void wifi_dppStartReceivingTestFrame()
 {
 	pthread_t frame_recv_tid;
 
@@ -3367,7 +3367,7 @@ int wifi_dppTestReconfigAuthResponse(unsigned int apIndex, mac_address_t sta)
 	struct sockaddr_in sockaddr;
     unsigned char msg[1024];
     char interface_name[32];
-	unsigned int len, tlv_len;
+	unsigned int len, tlv_len = 0;
     wifi_tlv_t *tlv;
 	unsigned short port = 8888;
 
@@ -3435,19 +3435,19 @@ int wifi_dppTestReconfigAuthResponse(unsigned int apIndex, mac_address_t sta)
 
     tlv = (wifi_tlv_t *)&msg[sizeof(wifi_common_hal_test_signature)];
 
-    tlv = set_tlv(tlv, wifi_test_attrib_cmd, sizeof(wifi_test_command_id_t), &cmd);
+    tlv = set_tlv((unsigned char*)tlv, wifi_test_attrib_cmd, sizeof(wifi_test_command_id_t), (unsigned char*)&cmd);
     tlv_len += (4 + sizeof(wifi_test_command_id_t));
 
     sprintf(interface_name, "ath%d", apIndex);
-    tlv = set_tlv(tlv, wifi_test_attrib_vap_name, IFNAMSIZ, interface_name);
+    tlv = set_tlv((unsigned char*)tlv, wifi_test_attrib_vap_name, IFNAMSIZ, interface_name);
     tlv_len += (4 + IFNAMSIZ);
 
 
-    tlv = set_tlv(tlv, wifi_test_attrib_sta_mac, sizeof(mac_address_t), sta);
+    tlv = set_tlv((unsigned char*)tlv, wifi_test_attrib_sta_mac, sizeof(mac_address_t), sta);
     tlv_len += (4 + sizeof(mac_address_t));
 
 
-    tlv = set_tlv(tlv, wifi_test_attrib_raw, sizeof(test_data), test_data);
+    tlv = set_tlv((unsigned char*)tlv, wifi_test_attrib_raw, sizeof(test_data), test_data);
     tlv_len += (4 + sizeof(test_data));
 
     len += tlv_len;
@@ -3471,7 +3471,7 @@ int wifi_dppChirp(unsigned int apIndex, mac_address_t sta)
 	struct sockaddr_in sockaddr;
     unsigned char msg[1024];
     char interface_name[32];
-	unsigned int len, tlv_len;
+	unsigned int len, tlv_len = 0;
     wifi_tlv_t *tlv;
 	unsigned short port = 8888;
 
@@ -3501,19 +3501,19 @@ int wifi_dppChirp(unsigned int apIndex, mac_address_t sta)
 
     tlv = (wifi_tlv_t *)&msg[sizeof(wifi_common_hal_test_signature)];
 
-    tlv = set_tlv(tlv, wifi_test_attrib_cmd, sizeof(wifi_test_command_id_t), &cmd);
+    tlv = set_tlv((unsigned char*)tlv, wifi_test_attrib_cmd, sizeof(wifi_test_command_id_t), (unsigned char*)&cmd);
     tlv_len += (4 + sizeof(wifi_test_command_id_t));
 
     sprintf(interface_name, "ath%d", apIndex);
-    tlv = set_tlv(tlv, wifi_test_attrib_vap_name, IFNAMSIZ, interface_name);
+    tlv = set_tlv((unsigned char*)tlv, wifi_test_attrib_vap_name, IFNAMSIZ, interface_name);
     tlv_len += (4 + IFNAMSIZ);
 
 
-    tlv = set_tlv(tlv, wifi_test_attrib_sta_mac, sizeof(mac_address_t), sta);
+    tlv = set_tlv((unsigned char*)tlv, wifi_test_attrib_sta_mac, sizeof(mac_address_t), sta);
     tlv_len += (4 + sizeof(mac_address_t));
 
 
-    tlv = set_tlv(tlv, wifi_test_attrib_raw, sizeof(test_data), test_data);
+    tlv = set_tlv((unsigned char*)tlv, wifi_test_attrib_raw, sizeof(test_data), test_data);
     tlv_len += (4 + sizeof(test_data));
 
     len += tlv_len;
