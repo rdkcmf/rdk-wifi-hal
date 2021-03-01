@@ -21,110 +21,65 @@
 #include "wifi_hal_rdk.h"
 #include "ieee80211.h"
 
-int handle_8021x_frame(INT ap_index, mac_address_t sta_mac, unsigned char *frame, UINT len, wifi_direction_t dir)
+#if 0
+static void DumpHex(const void* data, size_t size)
 {
-       llc_hdr_t *llc_hdr;
-       struct ieee80211_frame *ieeehdr;
-       wifi_8021x_frame_t *data;
-       wifi_eap_frame_t *eap;
-       wifi_eapol_key_frame_t  *key;
-       char    msg[32];
-       wifi_device_callbacks_t *callbacks;
-
-       callbacks = get_device_callbacks();
-       if (callbacks == NULL) {
-               return -1;
-       }
-
-       ieeehdr = (struct ieee80211_frame *)frame;
-
-    if (IEEE80211_IS_DSTODS(ieeehdr)) {
-        // the header has 4 MAC addresses because this is DS to DS
-        data = (wifi_8021x_frame_t *)((unsigned char *)frame + sizeof(struct ieee80211_frame_addr4));
-        len -= sizeof(struct ieee80211_frame_addr4);
-    } else {
-        data = (wifi_8021x_frame_t *)((unsigned char *)frame + sizeof(struct ieee80211_frame));
-        len -= sizeof(struct ieee80211_frame);
-    }
-   
-    if (IEEE80211_IS_QOSDATA(ieeehdr)) {
-        data = (wifi_8021x_frame_t *)((unsigned char *)data + sizeof(struct ieee80211_qoscntl));
-        len -= sizeof(struct ieee80211_qoscntl);
-    }
-   
-    if ((ieeehdr)->i_fc[1] & IEEE80211_FC1_PROTECTED) {
-        data = (wifi_8021x_frame_t *)((unsigned char *)data + sizeof(ccmp_hdr_t));
-        len -= sizeof(ccmp_hdr_t);
-    } else {
-        // if this is plain text and length of the data is more than LLC check if there is an LLC header
-        if (len > sizeof(llc_hdr_t)) {
-            llc_hdr = (llc_hdr_t *)data;
-            if ((llc_hdr->dsap == 0xaa) && (llc_hdr->ssap == 0xaa)) {
-                if ((llc_hdr->type[0] == 0x88) && (llc_hdr->type[1] == 0x8e)) {
-                    data = (wifi_8021x_frame_t *)((unsigned char *)data + sizeof(llc_hdr_t));
-                    len -= sizeof(llc_hdr_t);
-                }
-            }
-        }
-    }
-
-
-#ifdef DEBUG_8021X
-
-       switch (data->type) {
-               case wifi_eapol_type_eap_packet:
-                       eap = (wifi_eap_frame_t *)data->data;
-
-                       if (eap->code == 1) {
-                               strcpy(msg, "request");
-                       } else if (eap->code == 2) {
-                               strcpy(msg, "response");
-                       } else if (eap->code == 3) {
-                               strcpy(msg, "success");
-                       } else if (eap->code == 4) {
-                               strcpy(msg, "failure");
+       char ascii[17];
+       size_t i, j;
+       ascii[16] = '\0';
+       for (i = 0; i < size; ++i) {
+               wifi_rdk_hal_dbg_print("%02X ", ((unsigned char*)data)[i]);
+               if (((unsigned char*)data)[i] >= ' ' && ((unsigned char*)data)[i] <= '~') {
+                       ascii[i % 16] = ((unsigned char*)data)[i];
+               } else {
+                       ascii[i % 16] = '.';
+               }
+               if ((i+1) % 8 == 0 || i+1 == size) {
+                       wifi_rdk_hal_dbg_print(" ");
+                       if ((i+1) % 16 == 0) {
+                               wifi_rdk_hal_dbg_print("|  %s \n", ascii);
+                       } else if (i+1 == size) {
+                               ascii[(i+1) % 16] = '\0';
+                               if ((i+1) % 16 <= 8) {
+                                       wifi_rdk_hal_dbg_print(" ");
+                               }
+                               for (j = (i+1) % 16; j < 16; ++j) {
+                                       wifi_rdk_hal_dbg_print("   ");
+                               }
+                               wifi_rdk_hal_dbg_print("|  %s \n", ascii);
                        }
-
-                       printf("%s:%d: Received eap %s  id:%d\n", __func__, __LINE__, msg, eap->id);
-                       break;
-               
-               case wifi_eapol_type_eapol_start:
-                       break;
-               
-               case wifi_eapol_type_eapol_logoff:
-                       break;
-               
-               case wifi_eapol_type_eapol_key:
-                       key = (wifi_eapol_key_frame_t *)data->data;
-                       if (KEY_MSG_1_OF_4(key)) {
-                               strcpy(msg, "Message 1 of 4");
-                       } else if (KEY_MSG_2_OF_4(key)) {
-                               strcpy(msg, "Message 2 of 4");
-                       } else if (KEY_MSG_3_OF_4(key)) {
-                               strcpy(msg, "Message 3 of 4");
-                       } else if (KEY_MSG_4_OF_4(key)) {
-                               strcpy(msg, "Message 4 of 4");
-                       }
-                       
-                       printf("%s:%d: Received eapol key packet: %s\n", __func__, __LINE__, msg);
-                       break;
+               }
        }
-#else
-       (void)(eap);
-       (void)(key);
-       (void)(msg); //unused variables
+}
 #endif
 
-       if (dir == wifi_direction_downlink) {
-               if (callbacks->eapol_frame_tx_callback != NULL) {
-                       callbacks->eapol_frame_tx_callback(ap_index, sta_mac, data->type, data->data, len - sizeof(wifi_8021x_frame_t));
-               }
-       } else if (dir == wifi_direction_uplink) {
-               if (callbacks->eapol_frame_rx_callback != NULL) {
-                       callbacks->eapol_frame_rx_callback(ap_index, sta_mac, data->type, data->data, len - sizeof(wifi_8021x_frame_t));        
-               }
-       }
+static inline unsigned short be_to_host16(unsigned short v)
+{
+       return ((v & 0xff) << 8) | (v >> 8);
+}
 
+#define MAC2STR(a) (a)[0], (a)[1], (a)[2], (a)[3], (a)[4], (a)[5]
+#define MACSTR "%02x:%02x:%02x:%02x:%02x:%02x"
+
+/* handle_8021x_frame will receive the l2 frame directly through RAW socket,
+ * no need to handle 802.11 mac header, llc, ccmp headers.
+ */
+int handle_8021x_frame(INT ap_index, mac_address_t sta_mac, unsigned char *frame, UINT len, wifi_direction_t dir)
+{
+       wifi_8021x_frame_t *data;
+       wifi_device_callbacks_t *callbacks = get_device_callbacks();
+        if (callbacks == NULL) {
+                return -1;
+        }
+       data = (wifi_8021x_frame_t *)((unsigned char *)frame + sizeof(struct ethhdr));
+       len -= sizeof(struct ethhdr);
+       if (callbacks->eapol_frame_rx_callback != NULL) {
+               callbacks->eapol_frame_rx_callback(ap_index, sta_mac, data->type, data, len);
+               return RETURN_OK;
+       } else {
+               wifi_rdk_hal_dbg_print("Packet is not of EAP/EAPOL type %s:%d\n", __func__, __LINE__);
+               return 0;
+       }
        return RETURN_OK;
 }
 

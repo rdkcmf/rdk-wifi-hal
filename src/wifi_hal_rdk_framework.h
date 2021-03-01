@@ -111,6 +111,7 @@ typedef struct {
     wifi_apDeAuthEvent_callback             apDeAuthEvent_cb[MAX_REGISTERED_CB_NUM];
     unsigned int                            num_apDeAuthEvent_cbs;
     wifi_receivedMgmtFrame_callback         mgmt_frame_rx_callback;
+    wifi_receivedDataFrame_callback         data_frame_rx_callback;
        
     wifi_anqp_request_callback_t            anqp_req_callback;
        

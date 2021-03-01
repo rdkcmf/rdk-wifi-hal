@@ -67,9 +67,14 @@ struct ieee80211_plcp_hdr {
 struct ieee80211_frame {
        uint8_t         i_fc[2];
        uint8_t         i_dur[2];
-       uint8_t         i_addr1[IEEE80211_ADDR_LEN];
-       uint8_t         i_addr2[IEEE80211_ADDR_LEN];
-       uint8_t         i_addr3[IEEE80211_ADDR_LEN];
+       union {
+		struct {
+		       uint8_t         i_addr1[IEEE80211_ADDR_LEN];
+		       uint8_t         i_addr2[IEEE80211_ADDR_LEN];
+		       uint8_t         i_addr3[IEEE80211_ADDR_LEN];
+		};
+		u_int8_t    i_addr_all[3 * IEEE80211_ADDR_LEN];
+       };
        uint8_t         i_seq[2];
        /* possibly followed by addr4[IEEE80211_ADDR_LEN]; */
        /* see below */
@@ -1447,5 +1452,25 @@ struct ieee80211_duration {
                                 IEEE80211_DUR_DS_LONG_PREAMBLE + \
                                 IEEE80211_DUR_DS_SLOW_PLCPHDR + \
                                 IEEE80211_DUR_DIFS)
+
+/*
+ * Eth Frame Header.
+ */
+
+#define ETH_P_PAE       0x888E          /* Port Access Entity (IEEE 802.1X) */
+#define ETH_ALEN        6               /* Octets in one ethernet addr   */
+
+#ifdef __bitwise
+#undef __bitwise
+#endif
+#define __bitwise
+
+typedef uint16_t __bitwise be16;
+
+struct ethhdr {
+        unsigned char   h_dest[ETH_ALEN];       /* destination eth addr */
+        unsigned char   h_source[ETH_ALEN];     /* source ether addr    */
+        be16            h_proto;                /* packet type ID field */
+} __attribute__((packed));
 
 #endif /* _NET80211_IEEE80211_H_ */
