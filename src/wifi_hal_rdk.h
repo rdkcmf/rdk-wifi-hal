@@ -1137,6 +1137,7 @@ typedef enum {
         wifi_hal_cmd_passpoint,
         wifi_hal_cmd_greylisting,
         wifi_hal_cmd_restart_hostapd,
+        wifi_hal_cmd_mesh_reconfig,
         wifi_hal_cmd_start_stop_hostapd,
         wifi_hal_cmd_push_passphrase,
         wifi_hal_cmd_max
@@ -1152,6 +1153,7 @@ typedef struct {
                 BOOL greylist_enable;
                 BOOL libhostapd_init;
                 char passphrase[64];
+                BOOL mesh_reconfig;
         } u;
 } __attribute__((packed)) wifi_hal_ipc_data_t;
 
