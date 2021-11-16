@@ -60,20 +60,35 @@ wifi_device_callbacks_t *get_device_callbacks()
     return &g_device_callbacks;
 }
 
-char *to_mac_str    (mac_address_t mac, mac_addr_str_t key) {
+char *to_mac_str (mac_address_t mac, mac_addr_str_t key) {
     snprintf(key, 18, "%02x:%02x:%02x:%02x:%02x:%02x",
              mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 
     return (char *)key;
 }
 
-void to_mac_bytes   (mac_addr_str_t key, mac_address_t bmac) {
+void to_mac_bytes (mac_addr_str_t key, mac_address_t bmac) {
    unsigned int mac[6];
     sscanf(key, "%02x:%02x:%02x:%02x:%02x:%02x",
              &mac[0], &mac[1], &mac[2], &mac[3], &mac[4], &mac[5]);
    bmac[0] = mac[0]; bmac[1] = mac[1]; bmac[2] = mac[2];
    bmac[3] = mac[3]; bmac[4] = mac[4]; bmac[5] = mac[5];
 
+}
+
+const char *wifi_freq_bands_to_string(wifi_freq_bands_t band)
+{
+#define BANDS2S(x) case x: return #x;
+    switch (band) {
+    BANDS2S(WIFI_FREQUENCY_2_4_BAND)
+    BANDS2S(WIFI_FREQUENCY_5_BAND)
+    BANDS2S(WIFI_FREQUENCY_5L_BAND)
+    BANDS2S(WIFI_FREQUENCY_5H_BAND)
+    BANDS2S(WIFI_FREQUENCY_6_BAND)
+    BANDS2S(WIFI_FREQUENCY_60_BAND)
+    }
+
+    return "WIFI_FREQUENCY_UNKNOWN";
 }
 
 char *get_formatted_time(char *time)

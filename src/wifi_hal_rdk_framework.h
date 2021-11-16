@@ -97,6 +97,7 @@ typedef struct {
     unsigned int                            num_assoc_cbs;
     wifi_apDisassociatedDevice_callback     disassoc_cb[MAX_REGISTERED_CB_NUM];
     unsigned int                            num_disassoc_cbs;
+    unsigned int                            num_vapstatus_cbs;
     queue_t                                 *queue;
     wifi_RMBeaconReport_callback            bcnrpt_callback[MAX_AP_INDEX];
     wifi_BTM_callbacks_t                    btm_callback[MAX_AP_INDEX];
@@ -109,6 +110,7 @@ typedef struct {
     pthread_t                               notification_thread_id;
     bool                                    notification_framework_initialized;
     wifi_apDeAuthEvent_callback             apDeAuthEvent_cb[MAX_REGISTERED_CB_NUM];
+    wifi_vapstatus_callback                 vapstatus_cb[MAX_REGISTERED_CB_NUM];
     unsigned int                            num_apDeAuthEvent_cbs;
     wifi_receivedMgmtFrame_callback         mgmt_frame_rx_callback;
     wifi_receivedDataFrame_callback         data_frame_rx_callback;
@@ -123,6 +125,8 @@ typedef struct {
 
     wifi_receivedAssocReqFrame_callback     assoc_req_frame_rx_callback;
     wifi_sentAssocRspFrame_callback         assoc_rsp_frame_tx_callback;
+    wifi_staConnectionStatus_callback       sta_conn_status_callback;
+    wifi_scanResults_callback               scan_result_callback;
 } wifi_device_callbacks_t;
 
 

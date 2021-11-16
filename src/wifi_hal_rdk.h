@@ -171,7 +171,9 @@ typedef struct _wifi_EapStats_t{    // Passpoint stats defined rdkb-1317
 #define PKEX_SUB_COM_REV_RESP 10
 /* RESERVED 11-255 */
 
+#ifndef DPP_OUI_TYPE
 #define DPP_OUI_TYPE  0x1a // OUI Type
+#endif
 #define DPP_CONFPROTO 0x01 // denoting the DPP Configuration protocol
 
 #define STATUS_OK 0
@@ -244,6 +246,13 @@ typedef enum
 
 typedef struct
 {
+    unsigned char type;
+    unsigned char length;
+    unsigned char value[0];
+} __attribute__((packed)) ieee80211_tlv_t;
+
+typedef struct
+{
     unsigned short type;
     unsigned short length;
     unsigned char value[0];
@@ -310,11 +319,11 @@ typedef enum {
 
 typedef enum
 {
-	wifi_test_attrib_cmd,
-	wifi_test_attrib_vap_name,
-	wifi_test_attrib_sta_mac,
-	wifi_test_attrib_direction,
-	wifi_test_attrib_raw
+    wifi_test_attrib_cmd,
+    wifi_test_attrib_vap_name,
+    wifi_test_attrib_sta_mac,
+    wifi_test_attrib_direction,
+    wifi_test_attrib_raw
 } wifi_test_attrib_t;
 
 struct ieee80211_radiotap_header {

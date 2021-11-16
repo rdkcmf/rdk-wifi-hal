@@ -22,9 +22,9 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-typedef struct element {
+typedef struct elem {
     void     *data;
-    struct element *next;    
+    struct elem *next;    
 } element_t;
 typedef struct {
     void    *data;

@@ -39,6 +39,7 @@ AC_ARG_ENABLE([gtestapp],
              ],
              [echo "Gtestapp is disabled"])
 AM_CONDITIONAL([WITH_GTEST_SUPPORT], [test x$GTEST_SUPPORT_ENABLED = xtrue])
+AM_CONDITIONAL([ONE_WIFIBUILD], [test "x$ONE_WIFIBUILD" = "xtrue"])
 
 AC_PREFIX_DEFAULT(`pwd`)
 AC_ENABLE_SHARED
