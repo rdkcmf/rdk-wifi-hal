@@ -3999,7 +3999,7 @@ static int wpa_cipher_to_cipher_suites(unsigned int ciphers, u32 suites[],
 int wifi_drv_set_ap(void *priv, struct wpa_driver_ap_params *params)
 {
     struct nl_msg *msg;
-    int ret, freq;
+    int ret;
     int num_suites;
     int smps_mode;
     u32 suites[10], suite;
@@ -4149,13 +4149,6 @@ int wifi_drv_set_ap(void *priv, struct wpa_driver_ap_params *params)
     }
 
     get_coutry_str_from_code(radio_param->countryCode, country);
-
-    freq = ieee80211_chan_to_freq(country, radio_param->op_class, radio_param->channel);
-
-    if (nla_put_u32(msg, NL80211_ATTR_WIPHY_FREQ, freq) < 0) {
-        nlmsg_free(msg);
-        return -1;
-    }
 
     ret = send_and_recv(g_wifi_hal.nl_cb, g_wifi_hal.nl, msg, beacon_info_handler, &g_wifi_hal, NULL, NULL);
     if (ret != 0) {
