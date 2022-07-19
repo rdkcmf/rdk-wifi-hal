@@ -183,8 +183,7 @@ char *get_formatted_time(char *time);
 
 INT wifi_chan_event_register(wifi_chan_event_CB_t event_cb);
 
-int swap_radio_capability(wifi_radio_capabilities_t *tmp_cap, wifi_radio_capabilities_t *cap, unsigned int arr_loc);
-int update_radio_capabilty_band_arr_loc(wifi_radio_capabilities_t *cap, unsigned int radio_band);
+int adjust_radio_capability_band(wifi_radio_capabilities_t *cap, unsigned int radio_band);
 
 #endif //_RDK_HAL_FRAMEWORK_H_
 

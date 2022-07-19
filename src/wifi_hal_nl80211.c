@@ -1423,13 +1423,13 @@ static struct hostapd_hw_modes *phy_info_freqs(wifi_radio_info_t *radio, struct 
         }
 
         freq = nla_get_u32(tb_freq[NL80211_FREQUENCY_ATTR_FREQ]);
-        if ((freq >= 2412) && (freq <= 2484)) {
+        if ((freq >= MIN_FREQ_MHZ_2G) && (freq <= MAX_FREQ_MHZ_2G)) {
             freq_band = WIFI_FREQUENCY_2_4_BAND;
             band = NL80211_BAND_2GHZ;
-        } else if ((freq >= 5170) && (freq <= 5980)) {
+        } else if ((freq >= MIN_FREQ_MHZ_5G) && (freq <= MAX_FREQ_MHZ_5G)) {
             freq_band = WIFI_FREQUENCY_5_BAND;
             band = NL80211_BAND_5GHZ;
-        } else if ((freq >= 5935) && (freq <= 7115)) {
+        } else if ((freq >= MIN_FREQ_MHZ_6G) && (freq <= MAX_FREQ_MHZ_6G)) {
             freq_band = WIFI_FREQUENCY_6_BAND;
 #ifndef LINUX_VM_PORT
             band = NL80211_BAND_6GHZ;
@@ -1729,11 +1729,6 @@ static int wiphy_dump_handler(struct nl_msg *msg, void *arg)
             return NL_SKIP;
         }
     }
-    /* remove this check to bring up three radio configurations*/
-    if (nla_get_u32(tb[NL80211_ATTR_WIPHY]) == 2) {
-        wifi_hal_dbg_print("%s:%d: skipping for radio 3\n", __func__, __LINE__);
-        return NL_SKIP;
-    }
 
     phy_index = nla_get_u32(tb[NL80211_ATTR_WIPHY]);
     rdk_radio_index = get_rdk_radio_index(phy_index);
@@ -1911,7 +1906,7 @@ static int interface_info_handler(struct nl_msg *msg, void *arg)
     if (tb[NL80211_ATTR_WIPHY]) {
         radio = get_radio_by_phy_index(nla_get_u32(tb[NL80211_ATTR_WIPHY]));
         
-        if (radio != NULL && tb[NL80211_ATTR_IFNAME] && radio->index != 2) {
+        if (radio != NULL && tb[NL80211_ATTR_IFNAME]) {
             interface = hash_map_get_first(radio->interface_map);
             while (interface != NULL) {
                 if (strcmp(interface->name, nla_get_string(tb[NL80211_ATTR_IFNAME])) == 0) {
@@ -1983,7 +1978,7 @@ static int phy_info_handler(struct nl_msg *msg, void *arg)
     nla_parse(tb_msg, NL80211_ATTR_MAX, genlmsg_attrdata(gnlh, 0),
         genlmsg_attrlen(gnlh, 0), NULL);
 
-    if (tb_msg[NL80211_ATTR_WIPHY] && (nla_get_u32(tb_msg[NL80211_ATTR_WIPHY]) != 2)) {
+    if (tb_msg[NL80211_ATTR_WIPHY]) {
         radio = get_radio_by_phy_index(nla_get_u32(tb_msg[NL80211_ATTR_WIPHY]));
         if (radio == NULL) {
             return NL_SKIP;
@@ -2489,23 +2484,20 @@ int nl80211_init_radio_info()
 
 static int get_sec_channel_offset(wifi_radio_info_t *radio, int freq)
 {
-    int i, freq_band = 0;
+    int i;
     enum nl80211_band band;
 
-    if ((freq >= 2412) && (freq <= 2484)) {
-        freq_band = WIFI_FREQUENCY_2_4_BAND;
+    if ((freq >= MIN_FREQ_MHZ_2G) && (freq <= MAX_FREQ_MHZ_2G)) {
         band = NL80211_BAND_2GHZ;
-    } else if ((freq >= 5170) && (freq <= 5980)) {
-        freq_band = WIFI_FREQUENCY_5_BAND;
+    } else if ((freq >= MIN_FREQ_MHZ_5G) && (freq <= MAX_FREQ_MHZ_5G)) {
         band = NL80211_BAND_5GHZ;
-    } else if ((freq >= 5935) && (freq <= 7115)) {
-        freq_band = WIFI_FREQUENCY_6_BAND;
+    } else if ((freq >= MIN_FREQ_MHZ_6G) && (freq <= MAX_FREQ_MHZ_6G)) {
 #ifndef LINUX_VM_PORT
         band = NL80211_BAND_6GHZ;
 #endif
     } else {
         wifi_hal_info_print("%s:%d: Unknown frequency: %d in attribute of phy index: %d\n", __func__, __LINE__, 
-            freq_band, radio->index);
+            freq, radio->index);
         return 0;
     }
 
@@ -2611,6 +2603,56 @@ static int nl80211_put_freq_params(struct nl_msg *msg, const struct hostapd_freq
     return 0;
 }
 
+static int get_bw80_center_freq(wifi_radio_operationParam_t *param, const char *country)
+{
+    int i, freq = 0, num_channels;
+    int *channels;
+    unsigned int center_channels_5g[] = {42, 58, 106, 122, 138, 155};
+    unsigned int center_channels_6g[] = {7, 23, 39, 55, 71, 87, 103, 119, 135, 151, 167, 183, 199, 215};
+
+    if (param->band == WIFI_FREQUENCY_6_BAND) {
+        channels = &center_channels_6g[0];
+        num_channels = ARRAY_SZ(center_channels_6g);
+    } else {
+        channels = &center_channels_5g[0];
+        num_channels = ARRAY_SZ(center_channels_5g);
+    }
+
+    for (i = 0; i < num_channels; i++) {
+        if (param->channel <= (channels[i]+6)) {
+            freq = ieee80211_chan_to_freq(country, param->op_class, channels[i]);
+            break;
+        }
+    }
+
+    return freq;
+}
+
+static int get_bw160_center_freq(wifi_radio_operationParam_t *param, const char *country)
+{
+    int i, freq = 0, num_channels;
+    int *channels;
+    int center_channels_5g[] = {50, 114, 163};
+    int center_channels_6g[] = {15, 47, 79, 111, 143, 175, 207};
+
+    if (param->band == WIFI_FREQUENCY_6_BAND) {
+        channels = &center_channels_6g[0];
+        num_channels = ARRAY_SZ(center_channels_6g);
+    } else {
+        channels = &center_channels_5g[0];
+        num_channels = ARRAY_SZ(center_channels_5g);
+    }
+
+    for (i = 0; i < num_channels; i++) {
+        if (param->channel <= (channels[i]+14)) {
+            freq = ieee80211_chan_to_freq(country, param->op_class, channels[i]);
+            break;
+        }
+    }
+
+    return freq;
+}
+
 static void nl80211_fill_chandef(struct nl_msg *msg, wifi_radio_info_t *radio, wifi_interface_info_t *interface)
 {
     int freq, freq1;
@@ -2641,28 +2683,12 @@ static void nl80211_fill_chandef(struct nl_msg *msg, wifi_radio_info_t *radio, w
 
         case WIFI_CHANNELBANDWIDTH_80MHZ:
             width = NL80211_CHAN_WIDTH_80;
-            if (param->channel <= 48)
-                freq1 = ieee80211_chan_to_freq(country, param->op_class, 42);
-            else if (param->channel <= 64)
-                freq1 = ieee80211_chan_to_freq(country, param->op_class, 58);
-            else if (param->channel <= 112)
-                freq1 = ieee80211_chan_to_freq(country, param->op_class, 106);
-            else if (param->channel <= 128)
-                freq1 = ieee80211_chan_to_freq(country, param->op_class, 122);
-            else if (param->channel <= 144)
-                freq1 = ieee80211_chan_to_freq(country, param->op_class, 138);
-            else if (param->channel <= 161)
-                freq1 = ieee80211_chan_to_freq(country, param->op_class, 155);
+            freq1 = get_bw80_center_freq(param, country);
             break;
 
         case WIFI_CHANNELBANDWIDTH_160MHZ:
             width = NL80211_CHAN_WIDTH_160;
-            if (param->channel <= 64)
-                freq1 = ieee80211_chan_to_freq(country, param->op_class, 50);
-            else if (param->channel <= 128)
-                freq1 = ieee80211_chan_to_freq(country, param->op_class, 114);
-            else if (param->channel <= 177)
-                freq1 = ieee80211_chan_to_freq(country, param->op_class, 163);
+            freq1 = get_bw160_center_freq(param, country);
             break;
     
         case WIFI_CHANNELBANDWIDTH_80_80MHZ:
@@ -2679,7 +2705,7 @@ static void nl80211_fill_chandef(struct nl_msg *msg, wifi_radio_info_t *radio, w
     nla_put_u32(msg, NL80211_ATTR_CENTER_FREQ2, 0);
     nla_put_u32(msg, NL80211_ATTR_CHANNEL_WIDTH, width);
 
-    wifi_hal_dbg_print("%s:%d Setting channel freq:%d width:%d on interface:%d\n", __func__, __LINE__, freq, width, interface->index);
+    wifi_hal_dbg_print("%s:%d Setting channel freq:%d freq1:%d width:%d on interface:%d\n", __func__, __LINE__, freq, freq1, width, interface->index);
 }
 
 int nl80211_switch_channel(wifi_radio_info_t *radio)
@@ -2710,28 +2736,12 @@ int nl80211_switch_channel(wifi_radio_info_t *radio)
 
     case WIFI_CHANNELBANDWIDTH_80MHZ:
         bandwidth = 80;
-        if (param->channel <= 48)
-            freq1 = ieee80211_chan_to_freq(country, param->op_class, 42);
-        else if (param->channel <= 64)
-            freq1 = ieee80211_chan_to_freq(country, param->op_class, 58);
-        else if (param->channel <= 112)
-            freq1 = ieee80211_chan_to_freq(country, param->op_class, 106);
-        else if (param->channel <= 128)
-            freq1 = ieee80211_chan_to_freq(country, param->op_class, 122);
-        else if (param->channel <= 144)
-            freq1 = ieee80211_chan_to_freq(country, param->op_class, 138);
-        else if (param->channel <= 161)
-            freq1 = ieee80211_chan_to_freq(country, param->op_class, 155);
+        freq1 = get_bw80_center_freq(param, country);
         break;
 
     case WIFI_CHANNELBANDWIDTH_160MHZ:
         bandwidth = 160;
-        if (param->channel <= 64)
-            freq1 = ieee80211_chan_to_freq(country, param->op_class, 50);
-        else if (param->channel <= 128)
-            freq1 = ieee80211_chan_to_freq(country, param->op_class, 114);
-        else if (param->channel <= 177)
-            freq1 = ieee80211_chan_to_freq(country, param->op_class, 163);
+        freq1 = get_bw160_center_freq(param, country);
         break;
 
     default:
@@ -3351,6 +3361,111 @@ int nl80211_connect_sta(wifi_interface_info_t *interface)
     return -1;
 }
 
+static int conn_get_interface_handler(struct nl_msg *msg, void *arg)
+{
+    wifi_interface_info_t *interface  = (wifi_interface_info_t*)arg;
+    struct nlattr *tb[NL80211_ATTR_MAX + 1];
+    struct genlmsghdr *gnlh;
+    wifi_bss_info_t bss;
+    unsigned int channel_width = 0;
+    wifi_vap_info_t *vap;
+    int bw = NL80211_CHAN_WIDTH_20_NOHT;
+    wifi_device_callbacks_t *callbacks;
+    wifi_station_stats_t sta;
+    wifi_radio_info_t *radio =  NULL;
+    wifi_radio_operationParam_t *radio_param = NULL;
+    int op_class;
+    u8 channel;
+
+
+    gnlh = nlmsg_data(nlmsg_hdr(msg));
+    nla_parse(tb, NL80211_ATTR_MAX, genlmsg_attrdata(gnlh, 0), genlmsg_attrlen(gnlh, 0), NULL);
+    vap = &interface->vap_info;
+    memcpy(&bss, &interface->u.sta.backhaul, sizeof(wifi_bss_info_t));
+    
+    if (tb[NL80211_ATTR_IFINDEX]) {
+        if (interface->index == nla_get_u32(tb[NL80211_ATTR_IFINDEX]))
+        {
+            if (tb[NL80211_ATTR_WIPHY_FREQ])
+            {
+                ieee80211_freq_to_chan(nla_get_u32(tb[NL80211_ATTR_WIPHY_FREQ]), &channel);
+            }
+
+            if (tb[NL80211_ATTR_CHANNEL_WIDTH])
+            {
+                bw = nla_get_u32(tb[NL80211_ATTR_CHANNEL_WIDTH]);
+            }
+        }
+    }
+    switch (bw) {
+    case NL80211_CHAN_WIDTH_20:
+        channel_width = WIFI_CHANNELBANDWIDTH_20MHZ;
+        break;
+    case NL80211_CHAN_WIDTH_40:
+        channel_width = WIFI_CHANNELBANDWIDTH_40MHZ;
+        break;
+    case NL80211_CHAN_WIDTH_80:
+        channel_width = WIFI_CHANNELBANDWIDTH_80MHZ;
+        break;
+    case NL80211_CHAN_WIDTH_160:
+        channel_width = WIFI_CHANNELBANDWIDTH_160MHZ;
+        break;
+    case NL80211_CHAN_WIDTH_80P80:
+        channel_width = WIFI_CHANNELBANDWIDTH_80_80MHZ;
+        break;
+    default:
+        break;
+    }
+
+    radio = get_radio_by_rdk_index(interface->vap_info.radio_index);
+    if (radio == NULL) {
+        wifi_hal_error_print("%s:%d: Unable to get radio_info for radio index %d\n", __func__, __LINE__, interface->vap_info.radio_index);
+        return NL_SKIP;
+    }
+
+    radio_param = &radio->oper_param;
+    if (radio_param == NULL) {
+        wifi_hal_error_print("%s:%d: Unable to get radio params\n", __func__, __LINE__);
+        return NL_SKIP;
+    }
+
+    if ((op_class = get_op_class_from_radio_params(radio_param)) == -1) {
+        wifi_hal_error_print("%s:%d: could not find op_class for radio index:%d\n", __func__, __LINE__, interface->vap_info.radio_index);
+        return NL_SKIP;
+    }
+
+    sta.channel = channel;
+    sta.op_class = op_class;
+    sta.channelWidth = channel_width;
+
+    sta.vap_index = vap->vap_index;
+    sta.connect_status = wifi_connection_status_connected;
+
+    callbacks = get_hal_device_callbacks();
+
+    if (callbacks->sta_conn_status_callback) {
+        callbacks->sta_conn_status_callback(vap->vap_index, &bss, &sta);
+    }
+
+    return NL_SKIP;
+}
+
+int nl80211_get_channel_bw_conn(wifi_interface_info_t *interface)
+{
+    struct nl_msg *msg;
+    msg = nl80211_drv_cmd_msg(g_wifi_hal.nl80211_id, NULL, 0, NL80211_CMD_GET_INTERFACE);
+    if (msg == NULL){
+        return -1;
+    }
+    
+    nla_put_u32(msg, NL80211_ATTR_IFINDEX, interface->index);
+    if (send_and_recv(g_wifi_hal.nl_cb, g_wifi_hal.nl, msg, conn_get_interface_handler, interface, NULL, NULL)) {
+        return -1;
+    }
+
+    return 0;
+
+}
 int nl80211_start_scan(wifi_interface_info_t *interface, unsigned int num_freq, unsigned int  *freq_list, unsigned int num_ssid, ssid_t *ssid_list)
 {
     struct nl_msg *msg;
@@ -3738,10 +3853,15 @@ int wifi_drv_set_qos_map(void *priv, const u8 *qos_map_set, u8 qos_map_set_len)
     wifi_hal_dbg_print("%s:%d: Enter\n", __func__, __LINE__);
     return 0;
 }
-
+#if HOSTAPD_VERSION >= 210 //2.10
+int wifi_drv_vendor_cmd(void *priv, unsigned int vendor_id,
+                  unsigned int subcmd, const u8 *data,
+                  size_t data_len, enum nested_attr nested_attr_flag, struct wpabuf *buf)
+#else
 int wifi_drv_vendor_cmd(void *priv, unsigned int vendor_id,
                   unsigned int subcmd, const u8 *data,
                   size_t data_len, struct wpabuf *buf)
+#endif
 {
     wifi_hal_dbg_print("%s:%d: Enter\n", __func__, __LINE__);
     return 0;
@@ -4022,12 +4142,19 @@ int wifi_drv_read_sta_data(void *priv,
     wifi_hal_dbg_print("%s:%d: Enter\n", __func__, __LINE__);
     return 0;
 }
-
+#if HOSTAPD_VERSION >= 210 //2.10
+static int wifi_drv_send_mlme(void *priv, const u8 *data,
+                                          size_t data_len,int noack,
+					  unsigned int freq, const u16 *csa_offs,
+					  size_t csa_offs_len, int no_encrypt,
+					  unsigned int wait)
+#else
 static int wifi_drv_send_mlme(void *priv, const u8 *data,
                                           size_t data_len, int noack,
                                           unsigned int freq,
                                           const u16 *csa_offs,
                                           size_t csa_offs_len)
+#endif
 {
     wifi_interface_info_t *interface;
     wifi_vap_info_t *vap;
@@ -4135,8 +4262,13 @@ int wifi_drv_sta_disassoc(void *priv, const u8 *own_addr, const u8 *addr, u16 re
     memcpy(mgmt.sa, own_addr, ETH_ALEN);
     memcpy(mgmt.bssid, own_addr, ETH_ALEN);
     mgmt.u.disassoc.reason_code = host_to_le16(reason);
+#if HOSTAPD_VERSION >= 210 //2.10
+    return wifi_drv_send_mlme(priv, (u8 *) &mgmt,
+                                IEEE80211_HDRLEN + sizeof(mgmt.u.disassoc), 0, 0, NULL, 0, 0, 0);
+#else
     return wifi_drv_send_mlme(priv, (u8 *) &mgmt,
                                 IEEE80211_HDRLEN + sizeof(mgmt.u.disassoc), 0, 0, NULL, 0);
+#endif
 }
 
 
@@ -4218,9 +4350,13 @@ int wifi_drv_sta_deauth(void *priv, const u8 *own_addr, const u8 *addr, u16 reas
     memcpy(mgmt.sa, own_addr, ETH_ALEN);
     memcpy(mgmt.bssid, own_addr, ETH_ALEN);
     mgmt.u.deauth.reason_code = host_to_le16(reason);
+#if HOSTAPD_VERSION >= 210 //2.10
+    return wifi_drv_send_mlme(priv, (u8 *) &mgmt,
+                                IEEE80211_HDRLEN + sizeof(mgmt.u.disassoc), 0, 0, NULL, 0, 0, 0);
+#else
     return wifi_drv_send_mlme(priv, (u8 *) &mgmt,
                               IEEE80211_HDRLEN + sizeof(mgmt.u.deauth), 0, 0, NULL, 0);
-
+#endif
     return 0;
 }
 
@@ -4882,7 +5018,11 @@ static u32 wpa_alg_to_cipher_suite(enum wpa_alg alg, size_t key_len)
         return RSN_CIPHER_SUITE_CCMP_256;
     case WPA_ALG_GCMP_256:
         return RSN_CIPHER_SUITE_GCMP_256;
+#if HOSTAPD_VERSION >= 210 //2.10
+    case WPA_ALG_BIP_CMAC_128:
+#else
     case WPA_ALG_IGTK:
+#endif
         return RSN_CIPHER_SUITE_AES_128_CMAC;
     case WPA_ALG_BIP_GMAC_128:
         return RSN_CIPHER_SUITE_BIP_GMAC_128;
@@ -4894,8 +5034,10 @@ static u32 wpa_alg_to_cipher_suite(enum wpa_alg alg, size_t key_len)
         return RSN_CIPHER_SUITE_SMS4;
     case WPA_ALG_KRK:
         return RSN_CIPHER_SUITE_KRK;
-    case WPA_ALG_NONE:
+#if HOSTAPD_VERSION < 210 //2.10
     case WPA_ALG_PMK:
+#endif
+    case WPA_ALG_NONE:
         wpa_printf(MSG_ERROR, "nl80211: Unexpected encryption algorithm %d",
                alg);
         return 0;
@@ -4981,7 +5123,9 @@ int wifi_drv_set_ap(void *priv, struct wpa_driver_ap_params *params)
     struct nl_msg *msg;
     int ret;
     int num_suites;
+#ifndef HOSTAPD_2_10
     int smps_mode;
+#endif
     u32 suites[10], suite;
     u32 ver;
     wifi_interface_info_t *interface;
@@ -5102,6 +5246,7 @@ int wifi_drv_set_ap(void *priv, struct wpa_driver_ap_params *params)
        nla_put_u32(msg, NL80211_ATTR_CIPHER_SUITE_GROUP, suite); 
     }
 
+#if HOSTAPD_VERSION < 210 //2.10
     if (params->ht_opmode != -1) {
         switch (params->smps_mode) {
             case HT_CAP_INFO_SMPS_DYNAMIC:
@@ -5120,6 +5265,7 @@ int wifi_drv_set_ap(void *priv, struct wpa_driver_ap_params *params)
         }
         nla_put_u8(msg, NL80211_ATTR_SMPS_MODE, smps_mode);
     }
+#endif
 
     if (params->beacon_ies) {
         nla_put(msg, NL80211_ATTR_IE, wpabuf_len(params->beacon_ies), wpabuf_head(params->beacon_ies));
@@ -5463,10 +5609,13 @@ int     wifi_sta_deauth(void *priv, const u8 *own_addr, const u8 *addr, int reas
     wifi_hal_dbg_print("%s:%d: Enter\n", __func__, __LINE__);
     return 0;
 }
-
+#if HOSTAPD_VERSION >= 210 //2.10
+int 	wifi_drv_set_key(void *priv, struct wpa_driver_set_key_params *params)
+#else
 int     wifi_drv_set_key(const char *ifname, void *priv, enum wpa_alg alg,
                     const u8 *addr, int key_idx, int set_tx, const u8 *seq,
                     size_t seq_len, const u8 *key, size_t key_len)
+#endif
 {
     wifi_interface_info_t *interface;
     struct nl_msg *msg = NULL;
@@ -5481,29 +5630,10 @@ int     wifi_drv_set_key(const char *ifname, void *priv, enum wpa_alg alg,
     //wifi_hal_dbg_print("%s:%d: key Info: index:%d length:%d alg:%s\n", __func__, __LINE__, key_idx, key_len, wpa_alg_to_string(alg));
     //my_print_hex_dump(key_len, key);
 
+#if HOSTAPD_VERSION < 210 //2.10
     if (alg == WPA_ALG_NONE) {
         return -1;
-    } else if (alg == WPA_ALG_PMK) {
-        msg = nl80211_drv_cmd_msg(g_wifi_hal.nl80211_id, interface, 0, NL80211_CMD_SET_PMK);
-        if (msg == NULL) {
-            wifi_hal_dbg_print("%s:%d:Failed to allocate nl80211 message\n", __func__, __LINE__);
-            return -1;
-        }
-
-        nla_put(msg, NL80211_ATTR_MAC, ETH_ALEN, addr);
-        nla_put(msg, NL80211_ATTR_PMK, key_len, key);
-
-        wifi_hal_dbg_print("%s:%d: Sopping ap on interface: %d\n", __func__, __LINE__, interface->index);
-        if ((ret = send_and_recv(g_wifi_hal.nl_cb, g_wifi_hal.nl, msg, NULL, (void *)-1, NULL, NULL))) {
-            wifi_hal_dbg_print("%s:%d: Failed to set pmk: %s\n", __func__, __LINE__, strerror(-ret));
-            return -1;
-        }
-            
-        wifi_hal_dbg_print("%s:%d: pmk set success\n", __func__, __LINE__);
-        return 0;    
-
-    }
-
+    } 
     suite = wpa_alg_to_cipher_suite(alg, key_len);
     if (suite == 0) {
         wifi_hal_error_print("%s:%d: Failed to get cipher suite for alg:%s\n", __func__, __LINE__, wpa_alg_to_string(alg));
@@ -5560,6 +5690,67 @@ int     wifi_drv_set_key(const char *ifname, void *priv, enum wpa_alg alg,
         nla_put_flag(msg, NL80211_KEY_DEFAULT_TYPE_MULTICAST);
         nla_nest_end(msg, types);
     } else if (addr) {
+#else //hostapd 2.10
+    if (params->alg == WPA_ALG_NONE) {
+        return -1;
+    }
+    suite = wpa_alg_to_cipher_suite(params->alg, params->key_len);
+    if (suite == 0) {
+        wifi_hal_dbg_print("%s:%d: Failed to get cipher suite for alg:%s\n", __func__, __LINE__, wpa_alg_to_string(params->alg));
+        return -1;
+    }
+    msg = nl80211_drv_cmd_msg(g_wifi_hal.nl80211_id, interface, 0, NL80211_CMD_NEW_KEY);
+    if (msg == NULL) {
+        wifi_hal_dbg_print("%s:%d:Failed to allocate nl80211 message\n", __func__, __LINE__);
+        return -1;
+    }
+
+    nla_put(msg, NL80211_ATTR_KEY_DATA, params->key_len, params->key);
+    nla_put_u32(msg, NL80211_ATTR_KEY_CIPHER, suite);
+    if (params->seq && params->seq_len) {
+        nla_put(msg, NL80211_ATTR_KEY_SEQ, params->seq_len, params->seq);
+    }
+
+    if (params->addr && !is_broadcast_ether_addr(params->addr)) {
+        nla_put(msg, NL80211_ATTR_MAC, ETH_ALEN, params->addr);
+        if (params->alg != WPA_ALG_WEP && params->key_idx && !params->set_tx) {
+            nla_put_u32(msg, NL80211_ATTR_KEY_TYPE, NL80211_KEYTYPE_GROUP);
+        }
+    } else if (params->addr && is_broadcast_ether_addr(params->addr)) {
+        struct nlattr *types;
+
+        types = nla_nest_start(msg, NL80211_ATTR_KEY_DEFAULT_TYPES);
+        if (!types) {
+            nla_put_flag(msg, NL80211_KEY_DEFAULT_TYPE_MULTICAST);
+        }
+        nla_nest_end(msg, types);
+    }
+
+    nla_put_u8(msg, NL80211_ATTR_KEY_IDX, params->key_idx);
+
+    if ((ret = send_and_recv(g_wifi_hal.nl_cb, g_wifi_hal.nl, msg, NULL, (void *)-1, NULL, NULL))) {
+        wifi_hal_dbg_print("%s:%d: Failed new key: %s\n", __func__, __LINE__, strerror(-ret));
+        return -1;
+    }
+
+    wifi_hal_dbg_print("%s:%d: new key success\n", __func__, __LINE__);
+
+    if (vap->vap_mode != wifi_vap_mode_sta)
+        return 0;
+
+    msg = nl80211_drv_cmd_msg(g_wifi_hal.nl80211_id, interface, 0, NL80211_CMD_SET_KEY);
+
+    nla_put_u8(msg, NL80211_ATTR_KEY_IDX, params->key_idx);
+    nla_put_flag(msg, NL80211_ATTR_KEY_DEFAULT);
+
+    if (params->addr && is_broadcast_ether_addr(params->addr)) {
+        struct nlattr *types;
+
+        types = nla_nest_start(msg, NL80211_ATTR_KEY_DEFAULT_TYPES);
+        nla_put_flag(msg, NL80211_KEY_DEFAULT_TYPE_MULTICAST);
+        nla_nest_end(msg, types);
+    } else if (params->addr) {
+#endif
         struct nlattr *types;
 
         types = nla_nest_start(msg, NL80211_ATTR_KEY_DEFAULT_TYPES);
@@ -5683,8 +5874,9 @@ const struct wpa_driver_ops g_wpa_driver_nl80211_ops = {
     .resume = wifi_drv_resume,
     .signal_monitor = wifi_drv_signal_monitor,
     .signal_poll = wifi_drv_signal_poll,
+#if HOSTAPD_VERSION < 210 //2.10
     .channel_info = wifi_drv_channel_info,
-    .send_frame = wifi_drv_send_frame,
+#endif
     .set_param = wifi_drv_set_param,
     .get_radio_name = wifi_drv_get_radio_name,
     .add_pmkid = wifi_drv_add_pmkid,

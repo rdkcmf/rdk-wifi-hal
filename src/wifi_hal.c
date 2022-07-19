@@ -68,6 +68,12 @@ INT wifi_hal_getHalCapability(wifi_hal_capability_t *hal)
                 if (strstr(vap->vap_name, "2g") != NULL) {
                     is_band_found = true;
                     radio_band = WIFI_FREQUENCY_2_4_BAND;
+                } else if (strstr(vap->vap_name, "5gl") != NULL) {
+                    is_band_found = true;
+                    radio_band = WIFI_FREQUENCY_5L_BAND;
+                } else if (strstr(vap->vap_name, "5gh") != NULL) {
+                    is_band_found = true;
+                    radio_band = WIFI_FREQUENCY_5H_BAND;
                 } else if (strstr(vap->vap_name, "5g") != NULL) {
                     is_band_found = true;
                     radio_band = WIFI_FREQUENCY_5_BAND;
@@ -83,7 +89,7 @@ INT wifi_hal_getHalCapability(wifi_hal_capability_t *hal)
 
         cap = &hal->wifi_prop.radiocap[i];
         memcpy((unsigned char *)cap, (unsigned char *)&radio->capab, sizeof(wifi_radio_capabilities_t));
-        update_radio_capabilty_band_arr_loc(cap, radio_band);
+        adjust_radio_capability_band(cap, radio_band);
     }
 
     get_wifi_interface_info_map(hal->wifi_prop.interface_map);
@@ -864,27 +870,20 @@ INT wifi_hal_getScanResults(wifi_radio_index_t index, wifi_channel_t *channel, w
     return RETURN_OK;
 }
 
-static int chann_to_freq(unsigned char radio_index, unsigned char chan)
+static int chann_to_freq(unsigned char chan)
 {
-    switch(radio_index) {
-        case 0:
-            if (chan >= 1 && chan <= 11) {
-                return 2407 + 5 * chan;
-            } else {
-                return 0;
-            }
-            break;
-        case 1:
-            if (chan >= 36 && chan <= 165) {
-                return 5000 + 5 * chan;
-            } else {
-                return 0;
-            }
-            break;
-        default:
-            wifi_hal_error_print("%s:%d:wrong radio_index: %d\n", __func__, __LINE__, radio_index);
-            return RETURN_ERR;
+    if (chan >= MIN_CHANNEL_2G && chan <= MAX_CHANNEL_2G) {
+        return 2407 + 5 * chan;
     }
+
+    if (chan >= MIN_CHANNEL_5G && chan <= MAX_CHANNEL_5G) {
+        return 5000 + 5 * chan;
+    }
+
+    wifi_hal_error_print("%s:%d: Failed to convert channel %u to frequency\n", __func__, __LINE__,
+        chan);
+
+    return 0;
 }
 
 
@@ -1002,10 +1001,9 @@ INT wifi_hal_startScan(wifi_radio_index_t index, wifi_neighborScanMode_t scan_mo
 
     for (i = 0; i < num; i++) {
         //freq_list[i] = ieee80211_chan_to_freq(country, radio_param->op_class, (scan_mode == WIFI_RADIO_SCAN_MODE_ONCHAN)? radio_param->channel:chan_list[i]);
-        freq_list[i] = chann_to_freq(index, (scan_mode == WIFI_RADIO_SCAN_MODE_ONCHAN)? radio_param->channel:chan_list[i]);
-        if (freq_list[i] == RETURN_ERR) {
-            wifi_hal_error_print("%s:%d: wrong radio index:%d channel:%d\n", __func__, __LINE__, index,
-                        (scan_mode == WIFI_RADIO_SCAN_MODE_ONCHAN)? radio_param->channel:chan_list[i]);
+        freq_list[i] = chann_to_freq((scan_mode == WIFI_RADIO_SCAN_MODE_ONCHAN) ?
+            radio_param->channel : chan_list[i]);
+        if (freq_list[i] == 0) {
             return RETURN_ERR;
         }
         sprintf(tmp_str, "%d ", freq_list[i]);

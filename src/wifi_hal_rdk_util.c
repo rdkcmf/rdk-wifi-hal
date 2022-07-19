@@ -107,7 +107,8 @@ char *get_formatted_time(char *time)
 }
 
 
-int swap_radio_capability(wifi_radio_capabilities_t *tmp_cap, wifi_radio_capabilities_t *cap, unsigned int arr_loc)
+static int move_radio_capability(wifi_radio_capabilities_t *tmp_cap, wifi_radio_capabilities_t *cap,
+    unsigned int arr_loc)
 {
     unsigned j = 0;
 
@@ -134,21 +135,24 @@ int swap_radio_capability(wifi_radio_capabilities_t *tmp_cap, wifi_radio_capabil
     return RETURN_OK;
 }
 
-int update_radio_capabilty_band_arr_loc(wifi_radio_capabilities_t *cap, unsigned int radio_band)
+// The radio can support several bands. The actual band used by driver is retrieved from VAP name
+// and set as the first band so the higher layers can access it at 0 index.
+int adjust_radio_capability_band(wifi_radio_capabilities_t *cap, unsigned int radio_band)
 {
     wifi_radio_capabilities_t tmp_cap;
     unsigned int i = 0;
 
     memset(&tmp_cap, 0, sizeof(wifi_radio_capabilities_t));
     for (i = 0; i <= cap->numSupportedFreqBand; i++) {
+        // The driver reports 5G low and high bands as 5G band. We fix the band based on VAP name.
+        if (cap->band[i] == WIFI_FREQUENCY_5_BAND && (radio_band == WIFI_FREQUENCY_5H_BAND ||
+            radio_band == WIFI_FREQUENCY_5L_BAND)) {
+            cap->band[i] = radio_band;
+        }
+
+        // Find band that is actually used and move its capabilities to 0 index.
         if (cap->band[i] == radio_band) {
-            swap_radio_capability(&tmp_cap, cap, i);
-            break;
-        } else if (cap->band[i] == WIFI_FREQUENCY_5L_BAND) {
-            swap_radio_capability(&tmp_cap, cap, i);
-            break;
-        } else if (cap->band[i] == WIFI_FREQUENCY_5H_BAND) {
-            swap_radio_capability(&tmp_cap, cap, i);
+            move_radio_capability(&tmp_cap, cap, i);
             break;
         }
     }

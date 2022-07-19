@@ -64,7 +64,8 @@ wifi_interface_name_idex_map_t interface_index_map[] = {
 #endif
 
 #ifdef XLE_PORT // for Broadcom XLE
-    {0, 0,  "wl0",     "brlan1",    0,    true,   14,     "mesh_sta_2g"},
+#ifdef XLE_3_RADIO_SUPPORT
+    {0, 0,  "wl0",     "",          0,    true,   14,     "mesh_sta_2g"},
     {0, 0,  "wl0.1",   "brlan0",  100,    false,  0,      "private_ssid_2g"},
     {0, 0,  "wl0.2",   "brlan1",  101,    false,  2,      "iot_ssid_2g"},
     {0, 0,  "wl0.3",   "brlan2",  102,    false,  4,      "hotspot_open_2g"},
@@ -72,7 +73,32 @@ wifi_interface_name_idex_map_t interface_index_map[] = {
     {0, 0,  "wl0.5",   "brlan4",  104,    false,  8,      "hotspot_secure_2g"},
     {0, 0,  "wl0.6",   "br106",   106,    false,  10,     "lnf_radius_2g"},
     {0, 0,  "wl0.7",   "brlan112",112,    false,  12,     "mesh_backhaul_2g"},
-    {1, 1,  "wl1",     "brlan1",    0,    true,   15,     "mesh_sta_5g"},
+    {1, 1,  "wl1",     "",          0,    true,   15,     "mesh_sta_5gl"},
+    {1, 1,  "wl1.1",   "brlan0",  100,    false,  1,      "private_ssid_5gl"},
+    {1, 1,  "wl1.2",   "brlan1",  101,    false,  3,      "iot_ssid_5gl"},
+    {1, 1,  "wl1.3",   "brlan3",  103,    false,  5,      "hotspot_open_5gl"},
+    {1, 1,  "wl1.4",   "br106",   106,    false,  7,      "lnf_psk_5gl"},
+    {1, 1,  "wl1.5",   "brlan5",  105,    false,  9,      "hotspot_secure_5gl"},
+    {1, 1,  "wl1.6",   "br106",   106,    false,  11,     "lnf_radius_5gl"},
+    {1, 1,  "wl1.7",   "brlan113",113,    false,  13,     "mesh_backhaul_5gl"},
+    {2, 2,  "wl2",     "",          0,    true,   23,     "mesh_sta_5gh"},
+    {2, 2,  "wl2.1",   "brlan0",  100,    false,  16,     "private_ssid_5gh"},
+    {2, 2,  "wl2.2",   "brlan1",  101,    false,  17,     "iot_ssid_5gh"},
+    {2, 2,  "wl2.3",   "brlan3",  103,    false,  18,     "hotspot_open_5gh"},
+    {2, 2,  "wl2.4",   "br106",   106,    false,  19,     "lnf_psk_5gh"},
+    {2, 2,  "wl2.5",   "brlan5",  105,    false,  20,     "hotspot_secure_5gh"},
+    {2, 2,  "wl2.6",   "br106",   106,    false,  21,     "lnf_radius_5gh"},
+    {2, 2,  "wl2.7",   "brlan113",114,    false,  22,     "mesh_backhaul_5gh"},
+#else
+    {0, 0,  "wl0",     "",          0,    true,   14,     "mesh_sta_2g"},
+    {0, 0,  "wl0.1",   "brlan0",  100,    false,  0,      "private_ssid_2g"},
+    {0, 0,  "wl0.2",   "brlan1",  101,    false,  2,      "iot_ssid_2g"},
+    {0, 0,  "wl0.3",   "brlan2",  102,    false,  4,      "hotspot_open_2g"},
+    {0, 0,  "wl0.4",   "br106",   106,    false,  6,      "lnf_psk_2g"},
+    {0, 0,  "wl0.5",   "brlan4",  104,    false,  8,      "hotspot_secure_2g"},
+    {0, 0,  "wl0.6",   "br106",   106,    false,  10,     "lnf_radius_2g"},
+    {0, 0,  "wl0.7",   "brlan112",112,    false,  12,     "mesh_backhaul_2g"},
+    {1, 1,  "wl1",     "",          0,    true,   15,     "mesh_sta_5g"},
     {1, 1,  "wl1.1",   "brlan0",  100,    false,  1,      "private_ssid_5g"},
     {1, 1,  "wl1.2",   "brlan1",  101,    false,  3,      "iot_ssid_5g"},
     {1, 1,  "wl1.3",   "brlan3",  103,    false,  5,      "hotspot_open_5g"},
@@ -80,6 +106,30 @@ wifi_interface_name_idex_map_t interface_index_map[] = {
     {1, 1,  "wl1.5",   "brlan5",  105,    false,  9,      "hotspot_secure_5g"},
     {1, 1,  "wl1.6",   "br106",   106,    false,  11,     "lnf_radius_5g"},
     {1, 1,  "wl1.7",   "brlan113",113,    false,  13,     "mesh_backhaul_5g"},
+#endif
+#endif
+
+#ifdef TCXB8_PORT
+    {1, 0,  "wl0",     "",         0,     true,   14,     "mesh_sta_2g"},
+    {1, 0,  "wl0.1",   "brlan0",   100,   false,  0,      "private_ssid_2g"},
+    {1, 0,  "wl0.2",   "brlan1",   101,   false,  2,      "iot_ssid_2g"},
+    {1, 0,  "wl0.3",   "brlan2",   102,   false,  4,      "hotspot_open_2g"},
+    {1, 0,  "wl0.4",   "br106",    106,   false,  6,      "lnf_psk_2g"},
+    {1, 0,  "wl0.5",   "brlan4",   104,   false,  8,      "hotspot_secure_2g"},
+    {1, 0,  "wl0.6",   "br106",    106,   false,  10,     "lnf_radius_2g"},
+    {1, 0,  "wl0.7",   "brlan112", 112,   false,  12,     "mesh_backhaul_2g"},
+    {0, 1,  "wl1",     "",         0,     true,   15,     "mesh_sta_5g"},
+    {0, 1,  "wl1.1",   "brlan0",   100,   false,  1,      "private_ssid_5g"},
+    {0, 1,  "wl1.2",   "brlan1",   101,   false,  3,      "iot_ssid_5g"},
+    {0, 1,  "wl1.3",   "brlan3",   103,   false,  5,      "hotspot_open_5g"},
+    {0, 1,  "wl1.4",   "br106",    106,   false,  7,      "lnf_psk_5g"},
+    {0, 1,  "wl1.5",   "brlan5",   105,   false,  9,      "hotspot_secure_5g"},
+    {0, 1,  "wl1.6",   "br106",    106,   false,  11,     "lnf_radius_5g"},
+    {0, 1,  "wl1.7",   "brlan113", 113,   false,  13,     "mesh_backhaul_5g"},
+    {2, 2,  "wl2",     "",         0,     true,   23,     "mesh_sta_6g"},
+    {2, 2,  "wl2.1",   "brlan0",   100,   false,  16,     "private_ssid_6g"},
+    {2, 2,  "wl2.4",   "brlan6",   106,   false,  19,     "lnf_psk_6g"},
+    {2, 2,  "wl2.7",   "brlan113", 0,     false,  22,     "mesh_backhaul_6g"},
 #endif
 
     // for Intel based platforms
@@ -121,6 +171,21 @@ const wifi_driver_info_t  driver_info = {
     "tcxb7",
     "dhd",
     {"Xfinity Wireless Gateway","Technicolor","XB7","CGM4331COM","Model Description","Model URL","267","WPS Access Point","Manufacturer URL"},
+    platform_pre_init,
+    platform_post_init,
+    platform_set_radio,
+    platform_set_radio_pre_init,
+    platform_create_vap,
+    platform_get_ssid_default,
+    platform_get_keypassphrase_default,
+    platform_get_wps_pin_default,
+    platform_get_country_code_default
+#endif
+
+#ifdef TCXB8_PORT // for Broadcom based platforms
+    "tcxb8",
+    "dhd",
+    {"Xfinity Wireless Gateway","Technicolor","XB8","CGM4981COM","Model Description","Model URL","267","WPS Access Point","Manufacturer URL"},
     platform_pre_init,
     platform_post_init,
     platform_set_radio,
@@ -1132,6 +1197,18 @@ int get_op_class_from_radio_params(wifi_radio_operationParam_t *param)
     wifi_country_radio_op_class_t cc_op_class;
     wifi_radio_op_class_t   *op_class;
 
+#if HOSTAPD_VERSION >= 210 //2.10
+    if (param->band == WIFI_FREQUENCY_6_BAND) {
+        int freq, global_op_class = -1;
+
+        freq = (param->channel == 2) ? 5935 : (5950 + (param->channel * 5));
+        if (is_6ghz_freq(freq)) {
+            global_op_class = 131 + center_idx_to_bw_6ghz(param->channel);
+        }
+        return global_op_class;
+    }
+#endif
+
     memset(&cc_op_class, 0, sizeof(cc_op_class));
 
     get_wifi_op_class_info(param->countryCode, &cc_op_class);
@@ -1211,8 +1288,12 @@ const char *wpa_alg_to_string(enum wpa_alg alg)
     ALG2S(WPA_ALG_WEP)
     ALG2S(WPA_ALG_TKIP)
     ALG2S(WPA_ALG_CCMP)
+#if HOSTAPD_VERSION >= 210 //2.10
+    ALG2S(WPA_ALG_BIP_CMAC_128)
+#else
     ALG2S(WPA_ALG_IGTK)
     ALG2S(WPA_ALG_PMK)
+#endif
     ALG2S(WPA_ALG_GCMP)
     ALG2S(WPA_ALG_SMS4)
     ALG2S(WPA_ALG_KRK)

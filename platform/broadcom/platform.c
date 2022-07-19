@@ -345,6 +345,7 @@ int nvram_get_current_ssid(char *l_ssid, int vap_index)
 
 int platform_set_radio(wifi_radio_index_t index, wifi_radio_operationParam_t *operationParam)
 {
+    
     char temp_buff[BUF_SIZE];
     char param_name[NVRAM_NAME_SIZE];
     memset(param_name, 0 ,sizeof(param_name));

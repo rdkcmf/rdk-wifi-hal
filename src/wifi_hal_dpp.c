@@ -322,6 +322,18 @@ unsigned short freq_to_channel(unsigned int freq)
             return ((((short)temp) << 8) | (0x00ff & op_class));
         }
 
+#if HOSTAPD_VERSION >= 210 //2.10
+        if (is_6ghz_freq(freq)) {
+            if (freq == 5935) {
+                temp = 2;
+                op_class = 131;
+            } else {
+                temp = (freq - 5950) % 5;
+                op_class = 131 + center_idx_to_bw_6ghz((freq - 5950) / 5);
+            }
+            return ((((short)temp) << 8) | (0x00ff & op_class));
+        }
+#endif
     }
     printf("error: No case for given Freq\n");
     return 0;

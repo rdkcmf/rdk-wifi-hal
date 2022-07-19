@@ -206,8 +206,11 @@ void init_hostap_bss(wifi_interface_info_t *interface)
 #endif /* CONFIG_IEEE80211R_AP */
 
     conf->radius_das_time_window = 300;
-
+#if HOSTAPD_VERSION >= 210 //2.10
+    conf->anti_clogging_threshold = 5;
+#else
     conf->sae_anti_clogging_threshold = 5;
+#endif
     conf->sae_sync = 5;
 
     conf->gas_frag_limit = 1400;
@@ -757,7 +760,24 @@ int update_hostap_bss(wifi_interface_info_t *interface)
     wifi_hal_dbg_print("%s:%d: AP isolate:%d \r\n", __func__, __LINE__, conf->isolate);
 
     conf->wps_state = vap->u.bss_info.wps.enable ? WPS_STATE_CONFIGURED : 0;
-    conf->wps_rf_bands = radio->oper_param.band == WIFI_FREQUENCY_2_4_BAND ? WPS_RF_24GHZ : WPS_RF_50GHZ;
+    switch (radio->oper_param.band) {
+        case WIFI_FREQUENCY_2_4_BAND:
+            conf->wps_rf_bands = WPS_RF_24GHZ;
+            break;
+        case WIFI_FREQUENCY_5_BAND:
+        case WIFI_FREQUENCY_5L_BAND:
+        case WIFI_FREQUENCY_5H_BAND:
+            conf->wps_rf_bands = WPS_RF_50GHZ;
+            break;
+        case WIFI_FREQUENCY_6_BAND:
+            /* WPS is not supported in 6G */
+            conf->wps_rf_bands = 0;
+            conf->wps_state = 0;
+            break;
+        default:
+            wifi_hal_dbg_print("%s:%d: Unsupported frequency band \n", __func__, __LINE__);
+            return RETURN_ERR;
+    }
 
     if (conf->wps_state && conf->ignore_broadcast_ssid) {
         conf->wps_state = 0;
@@ -901,6 +921,7 @@ int update_hostap_iface(wifi_interface_info_t *interface)
     int basic_rates_g[] = { 10, 20, 55, 110, -1 };
     struct hostapd_hw_modes *mode;
     struct hostapd_rate_data *rate;
+    unsigned int global_op_class;
     
     if (interface == NULL) {
         return RETURN_ERR;
@@ -925,12 +946,19 @@ int update_hostap_iface(wifi_interface_info_t *interface)
         break;
 
     case WIFI_FREQUENCY_5_BAND:
+    case WIFI_FREQUENCY_5L_BAND:
+    case WIFI_FREQUENCY_5H_BAND:
         band = NL80211_BAND_5GHZ;
         break;
 
-    default:
-        band = NL80211_BAND_5GHZ;
+    case WIFI_FREQUENCY_6_BAND:
+        band = NL80211_BAND_6GHZ;
         break;
+
+    default:
+        wifi_hal_error_print("%s:%d: Unknown band: %d\n", __func__, __LINE__,
+            radio->oper_param.band);
+        return RETURN_ERR;
     }
 
     iface->current_mode = &radio->hw_modes[band];
@@ -985,8 +1013,9 @@ int update_hostap_iface(wifi_interface_info_t *interface)
 
     iface->freq = ieee80211_chan_to_freq(country, param->op_class, param->channel);
 
-    wifi_hal_info_print("%s:%d:interface name:%s country:%s op class:%d channel:%d frequency:%d\n", __func__, __LINE__,
-        interface->name, country, param->op_class, param->channel, iface->freq);
+    global_op_class = (unsigned int) country_to_global_op_class(country, (unsigned char)param->op_class);
+    wifi_hal_info_print("%s:%d:interface name:%s country:%s op class:%d global op class:%d channel:%d frequency:%d\n", __func__, __LINE__, 
+        interface->name, country, param->op_class, global_op_class, param->channel, iface->freq);
     if (interface->u.ap.iface_initialized == false) {
         dl_list_init(&iface->sta_seen);
         interface->u.ap.iface_initialized = true;
@@ -1152,7 +1181,7 @@ int update_hostap_config_params(wifi_radio_info_t *radio)
     }
 
     if (param->variant & WIFI_80211_VARIANT_AX) {
-        iconf->hw_mode = HOSTAPD_MODE_IEEE80211ANY;
+        iconf->hw_mode = HOSTAPD_MODE_IEEE80211A;
         iconf->ieee80211ax = 1;
         iconf->ieee80211ac = 1;
         iconf->ieee80211n = 1;
@@ -1243,15 +1272,16 @@ static void wpa_sm_sta_set_state(void *ctx, enum wpa_states state)
     interface->u.sta.state = state;
     vap = &interface->vap_info;
 
-    if (state == WPA_COMPLETED || state == WPA_DISCONNECTED) {
+    if (state == WPA_COMPLETED) {
+        nl80211_get_channel_bw_conn(interface);
+    } else if (state == WPA_DISCONNECTED) {
         callbacks = get_hal_device_callbacks();
-
+        
         if (callbacks->sta_conn_status_callback) {
             memcpy(&bss, &interface->u.sta.backhaul, sizeof(wifi_bss_info_t));
 
             sta.vap_index = vap->vap_index;
-            sta.connect_status = state == WPA_COMPLETED ? wifi_connection_status_connected :
-                wifi_connection_status_disconnected;
+            sta.connect_status = wifi_connection_status_disconnected;
 
             callbacks->sta_conn_status_callback(vap->vap_index, &bss, &sta);
         }
@@ -1273,11 +1303,17 @@ static void wpa_sm_sta_deauthenticate(void *ctx, u16 reason_code)
 {
     wifi_hal_dbg_print("%s:%d: Enter\n", __func__, __LINE__); 
 }
-
+#if HOSTAPD_VERSION >= 210 //2.10
+static int wpa_sm_sta_set_key(void *ctx, enum wpa_alg alg,
+               const u8 *addr, int key_idx, int set_tx,
+               const u8 *seq, size_t seq_len,
+               const u8 *key, size_t key_len, enum key_flag key_flag)
+#else
 static int wpa_sm_sta_set_key(void *ctx, enum wpa_alg alg,
                const u8 *addr, int key_idx, int set_tx,
                const u8 *seq, size_t seq_len,
                const u8 *key, size_t key_len)
+#endif
 {
     wifi_interface_info_t *interface;
     //wifi_vap_info_t *vap;
@@ -1286,9 +1322,15 @@ static int wpa_sm_sta_set_key(void *ctx, enum wpa_alg alg,
     interface = (wifi_interface_info_t *)ctx;
    // vap = &interface->vap_info;
     //radio = get_radio_by_rdk_index(vap->radio_index);
+#if HOSTAPD_VERSION >= 210 //2.10
+    struct wpa_driver_set_key_params params_conversion = {
+        interface->name, alg, addr, key_idx, set_tx, seq, seq_len, key, key_len, 0, key_flag};
 
+    return g_wpa_driver_nl80211_ops.set_key( interface, &params_conversion);
+#else
     return g_wpa_driver_nl80211_ops.set_key(interface->name, interface, alg, addr, key_idx,
                                                 set_tx, seq, seq_len, key, key_len);
+#endif
 }
 
 static void *wpa_sm_sta_get_network_ctx(void *ctx)
@@ -1449,11 +1491,17 @@ static int wpa_sm_sta_key_mgmt_set_pmk(void *ctx, const u8 *pmk,
     wifi_hal_dbg_print("%s:%d: Enter\n", __func__, __LINE__);
     return 0;
 }
-
+#if HOSTAPD_VERSION >= 210 //2.10
+static int wpa_sm_sta_add_pmkid(void *ctx, void *network_ctx, const u8 *bssid,
+					const u8 *pmkid, const u8 *fils_cache_id,
+					const u8 *pmk, size_t pmk_len, u32 pmk_lifetime,
+					u8 pmk_reauth_threshold, int akmp)
+#else
 static int wpa_sm_sta_add_pmkid(void *_wpa_s, void *network_ctx,
                                             const u8 *bssid, const u8 *pmkid,
                                             const u8 *fils_cache_id,
                                             const u8 *pmk, size_t pmk_len)
+#endif
 {
     wifi_hal_dbg_print("%s:%d: Enter\n", __func__, __LINE__);
     return 0;

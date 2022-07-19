@@ -78,6 +78,11 @@ extern "C" {
 
 #define WIFI_HAL_MAJOR  3
 #define WIFI_HAL_MINOR  0
+#ifdef HOSTAPD_2_10
+    #define HOSTAPD_VERSION 210
+#else
+    #define HOSTAPD_VERSION 209
+#endif
 /*
  * Copyright (c) 2003-2013, Jouni Malinen <j@w1.fi>
  * Licensed under the BSD-3 License
@@ -126,6 +131,24 @@ extern "C" {
 #define BUF_SIZE         32
 #define NVRAM_NAME_SIZE  32
 #define WPS_METHODS_SIZE 512
+
+/* 2GHz radio */
+#define MIN_FREQ_MHZ_2G             2412
+#define MAX_FREQ_MHZ_2G             2484
+#define MIN_CHANNEL_2G              1
+#define MAX_CHANNEL_2G              11
+
+/* 5GHz radio */
+#define MIN_FREQ_MHZ_5G             5180
+#define MAX_FREQ_MHZ_5G             5825
+#define MIN_CHANNEL_5G              36
+#define MAX_CHANNEL_5G              165
+
+/* 6GHz radio */
+#define MIN_FREQ_MHZ_6G             5935
+#define MAX_FREQ_MHZ_6G             7115
+#define MIN_CHANNEL_6G              1
+#define MAX_CHANNEL_6G              229
 
 extern const struct wpa_driver_ops g_wpa_driver_nl80211_ops;
 
@@ -418,6 +441,7 @@ int     nl80211_switch_channel(wifi_radio_info_t *radio);
 int     update_hostap_interfaces(wifi_radio_info_t *radio);
 int     update_hostap_interface_params(wifi_interface_info_t *interface);
 int     update_hostap_config_params(wifi_radio_info_t *radio);
+int     nl80211_get_channel_bw_conn(wifi_interface_info_t *interface);
 void    update_wpa_sm_params(wifi_interface_info_t *interface);
 void    update_eapol_sm_params(wifi_interface_info_t *interface);
 void    *nl_recv_func(void *arg);

@@ -46,6 +46,11 @@ librdk_wifihal_la_CPPFLAGS += -I$(top_srcdir)/../platform/broadcom
 librdk_wifihal_la_SOURCES += ../platform/broadcom/platform.c
 endif
 
+if TCXB8_PORT 
+librdk_wifihal_la_CPPFLAGS += -I$(top_srcdir)/../platform/broadcom
+librdk_wifihal_la_SOURCES += ../platform/broadcom/platform.c
+endif
+
 if SKYSR300_PORT
 librdk_wifihal_la_CPPFLAGS += -I$(top_srcdir)/../platform/broadcom
 librdk_wifihal_la_SOURCES += ../platform/broadcom/platform.c
