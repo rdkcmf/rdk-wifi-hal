@@ -38,6 +38,9 @@
 #include "crypto/sha1.h"
 #include "eap_peer/eap_methods.h"
 
+#define MACF      "%02x:%02x:%02x:%02x:%02x:%02x"
+#define MAC_TO_MACF(addr)    addr[0], addr[1], addr[2], addr[3], addr[4], addr[5]
+
 extern const struct wpa_driver_ops g_wpa_driver_nl80211_ops;
 
 int _syscmd(char *cmd, char *retBuf, int retBufSize)
@@ -814,6 +817,10 @@ int update_hostap_bss(wifi_interface_info_t *interface)
     //hessid
 
     strcpy(conf->hessid, to_mac_str(vap->u.bss_info.interworking.interworking.hessid, mac_str));
+    to_mac_bytes((vap->u.bss_info.interworking.interworking.hessid), conf->hessid);
+    wifi_hal_dbg_print(" %s: %s 802.11u - NEW IW_En=%d access_network_type=%d conf->[venue_info_set=%d venue_group=%d venue_type=%d hessid="MACF"]\n",
+                __func__, interface->name, conf->interworking, conf->access_network_type,
+                conf->venue_info_set, conf->venue_group, conf->venue_type, MAC_TO_MACF(conf->hessid));
 #if 0
 #ifdef CONFIG_HS20
     bss->rdk_hs20 = pWifiAp->AP.Cfg.IEEE80211uCfg.PasspointCfg.Status;
@@ -836,27 +843,46 @@ int update_hostap_bss(wifi_interface_info_t *interface)
     }
 #endif
     hostapd_set_security_params(conf, 1);
+    if (vap->u.bss_info.interworking.passpoint.enable) {
+        wifi_hal_dbg_print("gafDisable %d,p2pDisable %d l2tfi %d\n",vap->u.bss_info.interworking.passpoint.gafDisable,vap->u.bss_info.interworking.passpoint.p2pDisable,vap->u.bss_info.interworking.passpoint.l2tif);
+        wifi_hal_dbg_print("%s:%d, Passpoint enabled hence add roaming consortium IE \n", __func__, __LINE__);
 
-    conf->roaming_consortium_count = 0;
-    conf->roaming_consortium = NULL;
-    const wifi_roamingConsortiumElement_t *rc_p = &(vap->u.bss_info.interworking.roamingConsortium);
-    unsigned char rc_cnt = rc_p->wifiRoamingConsortiumCount;
-    rc_cnt = (rc_cnt > 3) ? 3 : rc_cnt;
-    for(unsigned char j = 0; j < rc_cnt; ++j) {
+        conf->hs20 = 1;
+        conf->hs20_release = 1;
+        conf->access_network_type = 2;
+        conf->roaming_consortium_count = 0;
+        conf->roaming_consortium = NULL;
+        conf->disable_dgaf = vap->u.bss_info.interworking.passpoint.gafDisable;
 
-        struct hostapd_roaming_consortium *rc = os_realloc_array(conf->roaming_consortium, conf->roaming_consortium_count + 1, sizeof(struct hostapd_roaming_consortium));
+        const wifi_roamingConsortiumElement_t *rc_p = &(vap->u.bss_info.interworking.roamingConsortium);
+        unsigned char rc_cnt = rc_p->wifiRoamingConsortiumCount;
+        wifi_hal_dbg_print("roaming consoritum count = %d\n",rc_cnt);
+        rc_cnt = (rc_cnt > 3) ? 3 : rc_cnt;
+        wifi_hal_dbg_print("%s:%d, rc_cnt consortium,%d\n", __func__, __LINE__, rc_cnt);
+        for(unsigned char j = 0; j < rc_cnt; ++j) {
+            struct hostapd_roaming_consortium *rc = os_realloc_array(conf->roaming_consortium, conf->roaming_consortium_count + 1, sizeof(struct hostapd_roaming_consortium));
 
-        if(rc == NULL) {
-            wifi_hal_info_print("%s:%d, Failed to add roaming consortium, indx: %d\n", __func__, __LINE__, j);
-        } else {
-            os_memcpy(rc[conf->roaming_consortium_count].oi, rc_p->wifiRoamingConsortiumOui[j], rc_p->wifiRoamingConsortiumLen[j]);
-            rc[conf->roaming_consortium_count].len = rc_p->wifiRoamingConsortiumLen[j];
-            conf->roaming_consortium = rc;
-            conf->roaming_consortium_count++;
-            wifi_hal_info_print("%s:%d, Added roaming consortium, indx: %d\n", __func__, __LINE__, j);
+            if(rc == NULL) {
+                wifi_hal_error_print("%s:%d, Failed to add roaming consortium, indx: %d\n", __func__, __LINE__, j);
+            } else {
+                os_memcpy(rc[conf->roaming_consortium_count].oi, rc_p->wifiRoamingConsortiumOui[j], rc_p->wifiRoamingConsortiumLen[j]);
+                rc[conf->roaming_consortium_count].len = rc_p->wifiRoamingConsortiumLen[j];
+                conf->roaming_consortium = rc;
+                conf->roaming_consortium_count++;
+                wifi_hal_error_print("%s:%d, Added roaming consortium, indx: %d\n", __func__, __LINE__, j);
+            }
+            wifi_hal_dbg_print("%s:%d,  add roaming consortium, indx:\n", __func__, __LINE__);
         }
-    }
 
+   }
+   else {
+        wifi_hal_dbg_print("%s:%d,Passpoint is disabled roaming consoritum and HS beacons are reset:\n", __func__, __LINE__);
+        conf->roaming_consortium_count = 0;
+        conf->roaming_consortium = NULL;
+        conf->hs20 = 0;
+        conf->hs20_release = 0;
+        conf->disable_dgaf = 0;
+    }
     return RETURN_OK;
 }
 

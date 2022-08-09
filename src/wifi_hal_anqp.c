@@ -550,6 +550,7 @@ INT wifi_anqpSendResponse(UINT apIndex, mac_address_t sta, unsigned char token, 
     }
  
 #if defined (FEATURE_SUPPORT_PASSPOINT)
+#if !defined (RDK_ONEWIFI)
     BOOL enabled;
     INT rc;
     rc = wifi_getApInterworkingServiceEnable(apIndex, &enabled);
@@ -566,6 +567,7 @@ INT wifi_anqpSendResponse(UINT apIndex, mac_address_t sta, unsigned char token, 
         wifi_anqp_dbg_print(1, "%s:%d: Error: Interworking enabled flag could not be retreived for AP: %d. Not sending any GAS Responses \n", __func__, __LINE__,(apIndex+1));
         return RETURN_ERR;
     }
+#endif
 #else
     wifi_anqp_dbg_print(1, "%s:%d: Error: FEATURE NOT SUPPORTED", __func__, __LINE__);
     return RETURN_ERR;
