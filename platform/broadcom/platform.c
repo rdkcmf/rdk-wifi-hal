@@ -301,7 +301,9 @@ int platform_get_ssid_default(char *ssid, int vap_index){
             return 0;
         }
     }else if(is_wifi_hal_vap_xhs(vap_index)) {
-        fp = popen("grep \"Default XHS SSID for 2.4GHZ and 5.0GHZ:\" /tmp/factory_nvram.data | cut -d ':' -f2 | cut -d ' ' -f2","r");
+        /* XB7 string is 'Default XHS SSID for 2.4GHZ and 5.0GHZ:' */
+        /* XB8 string is 'Default XHS SSID for 2.4GHZ, 5.0GHZ and 6.0GHZ:' */
+        fp = popen("grep \"Default XHS SSID\" /tmp/factory_nvram.data | cut -d ':' -f2 | cut -d ' ' -f2","r");
 
         if(fp != NULL) {
             while (fgets(value, sizeof(value), fp) != NULL){
