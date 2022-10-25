@@ -486,6 +486,7 @@ wifi_interface_info_t* get_primary_interface(wifi_radio_info_t *radio);
 int nl80211_disconnect_sta(wifi_interface_info_t *interface);
 int wifi_hal_purgeScanResult(unsigned int vap_index, unsigned char *sta_mac);
 void get_wifi_interface_info_map(wifi_interface_name_idex_map_t *interface_map);
+void get_radio_interface_info_map(radio_interface_mapping_t *radio_interface_map);
 int is_backhaul_interface(wifi_interface_info_t *interface);
 int get_interface_name_from_vap_index(unsigned int vap_index, char *interface_name);
 int get_ap_vlan_id(char *interface_name);
@@ -496,6 +497,7 @@ int get_security_mode_support_radius(int mode);
 void wps_enum_to_string(unsigned int methods, char *str, int len);
 int get_radio_variant_str_from_int(unsigned char variant, char *variant_str);
 int get_rdk_radio_index(unsigned int phy_index);
+int get_interface_name_from_radio_index(uint8_t radio_index, char *interface_name);
 
 BOOL is_wifi_hal_vap_private(UINT ap_index);
 BOOL is_wifi_hal_vap_xhs(UINT ap_index);

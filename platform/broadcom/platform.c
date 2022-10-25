@@ -9,6 +9,50 @@ int sta_disassociated(int ap_index, char *mac, int reason);
 int sta_deauthenticated(int ap_index, char *mac, int reason);
 int sta_associated(int ap_index, wifi_associated_dev_t *associated_dev);
 
+static char const *bss_nvifname[] = {
+    "wl0",      "wl1",
+    "wl0.1",    "wl1.1",
+    "wl0.2",    "wl1.2",
+    "wl0.3",    "wl1.3",
+    "wl0.4",    "wl1.4",
+    "wl0.5",    "wl1.5",
+    "wl0.6",    "wl1.6",
+    "wl0.7",    "wl1.7",
+    "wl2",      "wl2.1",
+    "wl2.2",    "wl2.3",
+    "wl2.4",    "wl2.5",
+    "wl2.6",    "wl2.7",
+};  /* Indexed by apIndex */
+
+static int get_ccspwifiagent_interface_name_from_vap_index(unsigned int vap_index, char *interface_name)
+{
+    // OneWifi interafce mapping with vap_index
+    unsigned char l_index = 0;
+    unsigned char total_num_of_vaps = 0;
+    char *l_interface_name = NULL;
+    wifi_radio_info_t *radio;
+
+    for (l_index = 0; l_index < g_wifi_hal.num_radios; l_index++) {
+        radio = get_radio_by_rdk_index(l_index);
+        total_num_of_vaps += radio->capab.maxNumberVAPs;
+    }
+
+    if ((vap_index >= total_num_of_vaps) || (interface_name == NULL)) {
+        wifi_hal_error_print("%s:%d: Wrong vap_index:%d \n",__func__, __LINE__, vap_index);
+        return RETURN_ERR;
+    }
+
+    l_interface_name = bss_nvifname[vap_index];
+    if(l_interface_name != NULL) {
+        strncpy(interface_name, l_interface_name, (strlen(l_interface_name) + 1));
+        wifi_hal_dbg_print("%s:%d: VAP index %d: interface name %s\n", __func__, __LINE__, vap_index, interface_name);
+    } else {
+        wifi_hal_error_print("%s:%d: Interface name not found:%d \n",__func__, __LINE__, vap_index);
+        return RETURN_ERR;
+    }
+    return RETURN_OK;
+}
+
 int sta_disassociated(int ap_index, char *mac, int reason)
 {
     return 0;
@@ -147,7 +191,7 @@ int platform_post_init(wifi_vap_info_map_t *vap_map)
                 for (index = 0; index < vap_map->num_vaps; index++) {
                     memset(param_name, 0 ,sizeof(param_name));
                     memset(interface_name, 0, sizeof(interface_name));
-                    get_interface_name_from_vap_index(vap_map->vap_array[index].vap_index, interface_name);
+                    get_ccspwifiagent_interface_name_from_vap_index(vap_map->vap_array[index].vap_index, interface_name);
                     if (vap_map->vap_array[index].vap_mode == wifi_vap_mode_ap) {
                         prepare_param_name(param_name, interface_name, "_bss_maxassoc");
                         set_decimal_nvram_param(param_name, vap_map->vap_array[index].u.bss_info.bssMaxSta);
@@ -172,7 +216,7 @@ int nvram_get_default_password(char *l_password, int vap_index)
     char *key_passphrase;
 
     memset(interface_name, 0, sizeof(interface_name));
-    get_interface_name_from_vap_index(vap_index, interface_name);
+    get_ccspwifiagent_interface_name_from_vap_index(vap_index, interface_name);
     snprintf(nvram_name, sizeof(nvram_name), "%s_wpa_psk", interface_name);
     key_passphrase = wlcsm_nvram_get(nvram_name);
     if (key_passphrase == NULL) {
@@ -350,7 +394,7 @@ int nvram_get_current_ssid(char *l_ssid, int vap_index)
     char *ssid;
 
     memset(interface_name, 0, sizeof(interface_name));
-    get_interface_name_from_vap_index(vap_index, interface_name);
+    get_ccspwifiagent_interface_name_from_vap_index(vap_index, interface_name);
     snprintf(nvram_name, sizeof(nvram_name), "%s_ssid", interface_name);
     ssid = wlcsm_nvram_get(nvram_name);
     if (ssid == NULL) {
@@ -445,7 +489,7 @@ int platform_create_vap(wifi_radio_index_t r_index, wifi_vap_info_map_t *map)
         interface = get_interface_by_vap_index(map->vap_array[index].vap_index);
 
         memset(interface_name, 0, sizeof(interface_name));
-        get_interface_name_from_vap_index(map->vap_array[index].vap_index, interface_name);
+        get_ccspwifiagent_interface_name_from_vap_index(map->vap_array[index].vap_index, interface_name);
 
         prepare_param_name(param_name, interface_name, "_ifname");
         set_string_nvram_param(param_name, interface_name);

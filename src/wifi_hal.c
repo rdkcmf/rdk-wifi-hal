@@ -127,6 +127,7 @@ INT wifi_hal_getHalCapability(wifi_hal_capability_t *hal)
     }
 
     get_wifi_interface_info_map(hal->wifi_prop.interface_map);
+    get_radio_interface_info_map(hal->wifi_prop.radio_interface_map);
 
     return RETURN_OK;
 }
@@ -636,7 +637,7 @@ INT wifi_hal_createVAP(wifi_radio_index_t index, wifi_vap_info_map_t *map)
         wifi_hal_dbg_print("%s:%d:vap_index:%d\r\n",__func__, __LINE__, vap->vap_index);
         if (interface == NULL) {
             wifi_hal_info_print("%s:%d:Could not find vap index:%d on radio:%d\n", __func__, __LINE__, vap->vap_index, index);
-            assert(0);
+            
             if ((nl80211_create_interface(radio, vap, &interface) != 0) || (interface == NULL)) {
                 wifi_hal_error_print("%s:%d: Could not create interface index:%d on radio:%s\n", __func__, __LINE__,
                     vap->vap_index, radio->name);
@@ -767,7 +768,7 @@ INT wifi_hal_createVAP(wifi_radio_index_t index, wifi_vap_info_map_t *map)
         wifi_hal_info_print("%s:%d: set vap params to nvram\n", __func__, __LINE__);
         set_vap_params_fn(index, map);
     }
-
+    
     return RETURN_OK;
 }
 
@@ -1067,7 +1068,7 @@ INT wifi_hal_startScan(wifi_radio_index_t index, wifi_neighborScanMode_t scan_mo
     }
 
     strcpy(ssid_list[0], vap->u.sta_info.ssid);
-    wifi_hal_info_print("%s:%d: Scan Frequencies:%s for ssid:%s\n", __func__, __LINE__, chan_list_str, ssid_list);
+    wifi_hal_info_print("%s:%d: Scan Frequencies:%s \n", __func__, __LINE__, chan_list_str);
 
     return (nl80211_start_scan(interface, num, freq_list, 1, ssid_list) == 0) ? RETURN_OK:RETURN_ERR;
 }

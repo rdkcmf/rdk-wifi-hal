@@ -3059,10 +3059,9 @@ int nl80211_create_interface(wifi_radio_info_t *radio, wifi_vap_info_t *vap, wif
         return -1;
     }
 
-    if ((vap->vap_index == 0) || (vap->vap_index == 1)) {
-        sprintf(ifname, "wl%d", radio->index);
-    } else {
-        sprintf(ifname, "wl%d.%d", radio->index, vap->vap_index/2);
+    if (get_interface_name_from_vap_index(vap->vap_index, ifname) != RETURN_OK) {
+        nlmsg_free(msg);
+        return -1;
     }
 
     if (nla_put_string(msg, NL80211_ATTR_IFNAME, ifname) < 0) {
@@ -3070,12 +3069,13 @@ int nl80211_create_interface(wifi_radio_info_t *radio, wifi_vap_info_t *vap, wif
         return -1;
     }
 
-    if (nla_put_u32(msg, NL80211_ATTR_IFTYPE, NL80211_IFTYPE_AP) < 0) {
+    if (nla_put_u32(msg, NL80211_ATTR_IFTYPE, is_wifi_hal_vap_mesh_sta(vap->vap_index) ?
+        NL80211_IFTYPE_STATION : NL80211_IFTYPE_AP) < 0) {
         nlmsg_free(msg);
         return -1;
     }
 
-    if (nla_put(msg, NL80211_ATTR_MAC, sizeof(mac_address_t), vap->u.bss_info.bssid) < 0) {
+    if (nla_put(msg, NL80211_ATTR_MAC, ETH_ALEN, vap->u.bss_info.bssid) < 0) {
         nlmsg_free(msg);
         return -1;
     }

@@ -970,26 +970,21 @@ int update_hostap_iface(wifi_interface_info_t *interface)
     wifi_hal_info_print("%s:%d: Interface: %s band: %d mode:%p has %d rates\n", __func__, __LINE__, 
         interface->name, band, mode, mode->num_rates);
 
-    switch (mode->mode) {
-    case HOSTAPD_MODE_IEEE80211A:
-        memcpy(radio->basic_rates[band], basic_rates_a, sizeof(basic_rates_a));
-        break;
-
-    case HOSTAPD_MODE_IEEE80211B:
-        memcpy(radio->basic_rates[band], basic_rates_b, sizeof(basic_rates_b));
-        break;
-
-    case HOSTAPD_MODE_IEEE80211G:
+    if ((param->variant & WIFI_80211_VARIANT_G) && !(param->variant & WIFI_80211_VARIANT_B)) {
         memcpy(radio->basic_rates[band], basic_rates_g, sizeof(basic_rates_g));
-        break;
-
-    case HOSTAPD_MODE_IEEE80211AD:
-        radio->basic_rates[band][0] = -1; /* No basic rates for 11ad */
-        break;
-
-    default:
-        radio->basic_rates[band][0] = -1; 
-        break;
+        mode->mode = HOSTAPD_MODE_IEEE80211G;
+    } else if (param->variant & WIFI_80211_VARIANT_B) {
+        memcpy(radio->basic_rates[band], basic_rates_b, sizeof(basic_rates_b));
+        mode->mode = HOSTAPD_MODE_IEEE80211B;
+    } else if (param->variant & WIFI_80211_VARIANT_A) {
+        memcpy(radio->basic_rates[band], basic_rates_a, sizeof(basic_rates_a));
+        mode->mode = HOSTAPD_MODE_IEEE80211A;
+    } else if (band == NL80211_BAND_2GHZ) {
+        memcpy(radio->basic_rates[band], basic_rates_g, sizeof(basic_rates_g));
+        mode->mode = HOSTAPD_MODE_IEEE80211G;
+    } else {
+        memcpy(radio->basic_rates[band], basic_rates_a, sizeof(basic_rates_a));
+        mode->mode = HOSTAPD_MODE_IEEE80211A;
     }
    
     iface->num_rates = 0; 
