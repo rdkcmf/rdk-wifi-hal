@@ -164,7 +164,8 @@ const wifi_driver_info_t  driver_info = {
     platform_get_keypassphrase_default,
     platform_get_radius_key_default,
     platform_get_wps_pin_default,
-    platform_get_country_code_default
+    platform_get_country_code_default,
+    platform_wps_event
 #endif
 
 #ifdef TCXB7_PORT // for Broadcom based platforms
@@ -180,7 +181,8 @@ const wifi_driver_info_t  driver_info = {
     platform_get_keypassphrase_default,
     platform_get_radius_key_default,
     platform_get_wps_pin_default,
-    platform_get_country_code_default
+    platform_get_country_code_default,
+    platform_wps_event
 #endif
 
 #ifdef TCXB8_PORT // for Broadcom based platforms
@@ -196,7 +198,8 @@ const wifi_driver_info_t  driver_info = {
     platform_get_keypassphrase_default,
     platform_get_radius_key_default,
     platform_get_wps_pin_default,
-    platform_get_country_code_default
+    platform_get_country_code_default,
+    platform_wps_event
 #endif
 
 #ifdef XLE_PORT // for Broadcom XLE
@@ -212,7 +215,8 @@ const wifi_driver_info_t  driver_info = {
     platform_get_keypassphrase_default,
     platform_get_radius_key_default,
     platform_get_wps_pin_default,
-    platform_get_country_code_default
+    platform_get_country_code_default,
+    platform_wps_event
 #endif
 };
 
@@ -1938,6 +1942,11 @@ platform_radius_key_default_t get_platform_radius_key_default_fn()
 platform_wps_pin_default_t get_platform_wps_pin_default_fn()
 {
    return driver_info.platform_wps_pin_default_fn;
+}
+
+platform_wps_event_t get_platform_wps_event_fn()
+{
+   return driver_info.platform_wps_event_fn;
 }
 
 platform_country_code_default_t get_platform_country_code_default_fn()

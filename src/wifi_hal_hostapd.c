@@ -860,6 +860,8 @@ int update_hostap_bss(wifi_interface_info_t *interface)
         strcpy(conf->ap_pin, vap->u.bss_info.wps.pin);
         conf->wps_cred_processing = 1;
         conf->pbc_in_m1 = 1;
+        wifi_hal_info_print("%s:%d, Wi-Fi WPS config method:%d wps_pin:%s\n", __func__, __LINE__,
+                                vap->u.bss_info.wps.methods, conf->ap_pin);
     }
 #endif
     hostapd_set_security_params(conf, 1);

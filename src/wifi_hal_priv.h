@@ -162,6 +162,7 @@ typedef int    (* platform_country_code_default_t)(char *code);
 typedef int    (* platform_set_radio_params_t)(wifi_radio_index_t index, wifi_radio_operationParam_t *operationParam);
 typedef int    (* platform_set_radio_pre_init_t)(wifi_radio_index_t index, wifi_radio_operationParam_t *operationParam);
 typedef int    (* platform_create_vap_t)(wifi_radio_index_t index, wifi_vap_info_map_t *map);
+typedef int    (* platform_wps_event_t)(wifi_wps_event_t data);
 typedef struct wifi_enum_to_str_map
 {
     int enum_val;
@@ -199,6 +200,7 @@ typedef struct {
     platform_radius_key_default_t  platform_radius_key_default_fn;
     platform_wps_pin_default_t        platform_wps_pin_default_fn;
     platform_country_code_default_t platform_country_code_default_fn;
+    platform_wps_event_t              platform_wps_event_fn;
 } wifi_driver_info_t;
 
 typedef struct {
@@ -539,6 +541,7 @@ extern int platform_get_keypassphrase_default(char *password, int vap_index);
 extern int platform_get_radius_key_default(char *radius_key);
 extern int platform_get_ssid_default(char *ssid, int vap_index);
 extern int platform_get_wps_pin_default(char *pin);
+extern int platform_wps_event(wifi_wps_event_t data);
 extern int platform_get_country_code_default(char *code);
 extern int platform_set_radio(wifi_radio_index_t index, wifi_radio_operationParam_t *operationParam);
 extern int platform_create_vap(wifi_radio_index_t index, wifi_vap_info_map_t *map);
@@ -548,9 +551,12 @@ platform_post_init_t    	get_platform_post_init_fn();
 platform_keypassphrase_default_t     get_platform_keypassphrase_default_fn();
 platform_ssid_default_t              get_platform_ssid_default_fn();
 platform_wps_pin_default_t           get_platform_wps_pin_default_fn();
+platform_wps_event_t                 get_platform_wps_event_fn();
 platform_country_code_default_t get_platform_country_code_default_fn();
 platform_set_radio_params_t 	get_platform_set_radio_fn();
 platform_set_radio_pre_init_t get_platform_set_radio_pre_init_fn();
 platform_create_vap_t 		get_platform_create_vap_fn();
 platform_radius_key_default_t       get_platform_radius_key_default_fn();
+
+INT wifi_hal_wps_event(wifi_wps_event_t data);
 #endif // WIFI_HAL_PRIV_H

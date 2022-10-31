@@ -296,6 +296,30 @@ int platform_get_wps_pin_default(char *pin)
     return -1;
 }
 
+int platform_wps_event(wifi_wps_event_t data)
+{
+    switch(data.event) {
+        case WPS_EV_PBC_ACTIVE:
+            // set wps led color to blue
+            system("led_wps_active 1");
+            wifi_hal_dbg_print("%s:%d set wps led color to blue\r\n", __func__, __LINE__);
+            break;
+
+        case WPS_EV_SUCCESS:
+        case WPS_EV_PBC_TIMEOUT:
+            // set wps led color to white
+            system("led_wps_active 0");
+            wifi_hal_dbg_print("%s:%d set wps led color to white\r\n", __func__, __LINE__);
+            break;
+
+        default:
+            wifi_hal_info_print("%s:%d wps event[%d] not handle\r\n", __func__, __LINE__, data.event);
+            break;
+    }
+
+    return 0;
+}
+
 int platform_get_country_code_default(char *code)
 {
     char value[BUFFER_LENGTH_WIFIDB] = {0};

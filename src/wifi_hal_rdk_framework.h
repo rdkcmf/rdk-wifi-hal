@@ -104,6 +104,12 @@ typedef struct {
 typedef void (*wifi_chan_event_CB_t)(wifi_channel_change_event_t radio_channel_param);
 
 typedef struct {
+    unsigned int    vap_index;
+    unsigned int    event;
+    unsigned char   *wps_data;
+} __attribute__((__packed__)) wifi_wps_event_t;
+
+typedef struct {
     struct rtnl_handle                      rtnl;
     struct rtnl_kvr_handle                  rtnl_kvr;
     wifi_newApAssociatedDevice_callback     assoc_cb[MAX_REGISTERED_CB_NUM];

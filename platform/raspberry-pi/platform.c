@@ -41,6 +41,11 @@ int platform_get_wps_pin_default(char *pin)
     return 0;
 }
 
+int platform_wps_event(wifi_wps_event_t data)
+{
+    return 0;
+}
+
 int platform_get_country_code_default(char *code)
 {
     return 0;

@@ -5803,6 +5803,31 @@ int wifi_drv_set_ap_wps_ie(void *priv, const struct wpabuf *beacon,
     return 0;
 }
 
+int wifi_drv_wps_event_notify_cb(void *ctx, unsigned int event, void *data)
+{
+    wifi_interface_info_t *interface;
+    wifi_vap_info_t *vap;
+    wifi_wps_event_t event_data;
+
+    memset(&event_data, 0, sizeof(event_data));
+
+    wifi_hal_dbg_print("%s:%d: Enter wps event:%d\n", __func__, __LINE__, event);
+    interface = (wifi_interface_info_t *)ctx;
+    if (interface != NULL) {
+        vap = &interface->vap_info;
+        if (vap != NULL) {
+            wifi_hal_dbg_print("%s:%d: Enter wps event vap->vap_index:%d\n", __func__, __LINE__, vap->vap_index);
+            event_data.vap_index = vap->vap_index;
+        }
+    }
+
+    event_data.event = event;
+    event_data.wps_data = (unsigned char *)data;
+    wifi_hal_wps_event(event_data);
+
+    return 0;
+}
+
 int wifi_drv_sta_get_seqnum(const char *ifname, void *priv, const u8 *addr, int idx, u8 *seq)
 {
     wifi_hal_dbg_print("%s:%d: Enter\n", __func__, __LINE__);
@@ -5862,6 +5887,7 @@ const struct wpa_driver_ops g_wpa_driver_nl80211_ops = {
     .set_sta_vlan = wifi_drv_set_sta_vlan,
     .sta_deauth = wifi_drv_sta_deauth,
     .sta_notify_deauth = wifi_drv_sta_notify_deauth,
+    .wps_event_notify_cb = wifi_drv_wps_event_notify_cb,
     .sta_disassoc = wifi_drv_sta_disassoc,
     .read_sta_data = wifi_drv_read_sta_data,
     .set_freq = wifi_drv_set_freq,

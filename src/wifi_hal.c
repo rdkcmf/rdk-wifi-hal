@@ -276,6 +276,17 @@ INT wifi_hal_get_default_wps_pin(char *pin)
     return RETURN_ERR;
 }
 
+INT wifi_hal_wps_event(wifi_wps_event_t data)
+{
+    platform_wps_event_t platform_wps_event_fn;
+    if ((platform_wps_event_fn = get_platform_wps_event_fn()) != NULL) {
+        wifi_hal_dbg_print("%s:%d: platform wps event callback triggered\n", __func__, __LINE__);
+        return (platform_wps_event_fn(data));
+    }
+
+    return RETURN_ERR;
+}
+
 INT wifi_hal_hostApGetErouter0Mac(char *out)
 {
     if (out == NULL) {
