@@ -150,6 +150,8 @@ extern "C" {
 #define MIN_CHANNEL_6G              1
 #define MAX_CHANNEL_6G              229
 
+#define MAX_WPS_CONN_TIMEOUT        120
+
 extern const struct wpa_driver_ops g_wpa_driver_nl80211_ops;
 
 typedef int    (* platform_pre_init_t)();
@@ -407,6 +409,7 @@ INT wifi_hal_startScan(wifi_radio_index_t index, wifi_neighborScanMode_t scan_mo
 INT wifi_hal_disconnect(INT ap_index);
 INT wifi_hal_getRadioVapInfoMap(wifi_radio_index_t index, wifi_vap_info_map_t *map);
 INT wifi_hal_setApWpsButtonPush(INT apIndex);
+INT wifi_hal_setApWpsPin(INT ap_index, char *wps_pin);
 INT wifi_hal_sendDataFrame(int vap_id, unsigned char *dmac, unsigned char *data_buff, int data_len, BOOL insert_llc, int protocal, int priority);
 
 wifi_radio_info_t *get_radio_by_index(wifi_radio_index_t index);
@@ -427,6 +430,7 @@ int getIpStringFromAdrress(char * ipString,  ip_addr_t * ip);
 
 int init_nl80211();
 void wifi_hal_nl80211_wps_pbc(unsigned int ap_index);
+int wifi_hal_nl80211_wps_pin(unsigned int ap_index, char *wps_pin);
 int     update_channel_flags();
 int     handle_public_action_frame(INT ap_index, mac_address_t sta_mac, wifi_publicActionFrameHdr_t *ppublic_hdr, UINT len);
 int     nl80211_create_interface(wifi_radio_info_t *radio, wifi_vap_info_t *vap, wifi_interface_info_t **interface);
@@ -561,4 +565,5 @@ platform_create_vap_t 		get_platform_create_vap_fn();
 platform_radius_key_default_t       get_platform_radius_key_default_fn();
 
 INT wifi_hal_wps_event(wifi_wps_event_t data);
+INT wifi_hal_get_default_wps_pin(char *pin);
 #endif // WIFI_HAL_PRIV_H

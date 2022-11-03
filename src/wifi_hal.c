@@ -141,6 +141,19 @@ INT wifi_hal_setApWpsButtonPush(INT ap_index)
     return 0;
 }
 
+INT wifi_hal_setApWpsPin(INT ap_index, char *wps_pin)
+{
+    if (wps_pin == NULL) {
+        wifi_hal_error_print("%s:%d: WPS Pin is NULL for vap_index:%d\n", __func__, __LINE__, ap_index);
+        return RETURN_ERR;
+    }
+
+    wifi_hal_info_print("%s:%d: WPS Pin configuration for vap_index:%d pin:%s\n",
+                                __func__, __LINE__, ap_index, wps_pin);
+
+    return (wifi_hal_nl80211_wps_pin(ap_index, wps_pin));
+}
+
 INT wifi_hal_init()
 {
     unsigned int i;

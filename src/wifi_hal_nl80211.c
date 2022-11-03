@@ -2317,6 +2317,32 @@ void wifi_hal_nl80211_wps_pbc(unsigned int ap_index)
     wpa_supplicant_event(&interface->u.ap.hapd, EVENT_WPS_BUTTON_PUSHED, &event);
 }
 
+int wifi_hal_nl80211_wps_pin(unsigned int ap_index, char *wps_pin)
+{
+    int ret;
+    wifi_interface_info_t *interface;
+
+    interface = get_interface_by_vap_index(ap_index);
+    if ((wps_pin == NULL) || (interface == NULL)) {
+        wifi_hal_error_print("%s:%d: WPS Pin or interface is NULL for vap_index:%d\n", __func__, __LINE__, ap_index);
+        return RETURN_ERR;
+    }
+
+    if (interface->u.ap.conf.wps_state == 0) {
+        wifi_hal_error_print("%s:%d: WPS is not enabled for interface %s\n", __func__, __LINE__, interface->name);
+        return RETURN_ERR;
+    }
+
+    ret = hostapd_wps_add_pin(&interface->u.ap.hapd, NULL, "any", wps_pin, MAX_WPS_CONN_TIMEOUT);
+    if (ret != 0) {
+        wifi_hal_error_print("%s:%d: WPS pin configuration failure[%d] for interface:%s vap_index:%d\n",
+                                __func__, __LINE__, ret, interface->name, ap_index);
+        return RETURN_ERR;
+    }
+
+    return 0;
+}
+
 int nl80211_enable_ap(wifi_interface_info_t *interface, bool enable)
 {
     struct nl_msg *msg;
