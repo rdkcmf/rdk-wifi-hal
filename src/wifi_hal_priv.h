@@ -342,6 +342,8 @@ typedef struct {
     struct hostapd_iface *iface[MAX_NUM_VAP_PER_RADIO];
     struct hostapd_bss_config *bss[MAX_NUM_VAP_PER_RADIO];
     bool configured;
+    unsigned int  prev_channel;
+    unsigned int  prev_channelWidth;
 } wifi_radio_info_t;
 
 typedef struct {

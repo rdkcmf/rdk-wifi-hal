@@ -397,6 +397,10 @@ static void nl80211_ch_switch_notify_event(wifi_interface_info_t *interface, str
     wifi_channel_change_event_t radio_channel_param;
     int l_channel_width, op_class;
     enum nl80211_radar_event event_type = 0;
+    unsigned int *p_prev_channel, *p_prev_channelWidth;
+
+    p_prev_channel      = &g_wifi_hal.radio_info[interface->vap_info.radio_index].prev_channel;
+    p_prev_channelWidth = &g_wifi_hal.radio_info[interface->vap_info.radio_index].prev_channelWidth;
 
     wifi_hal_dbg_print("%s:%d: wifi_chan_event_type:%d\n", __func__, __LINE__, wifi_chan_event_type);
     
@@ -475,13 +479,16 @@ static void nl80211_ch_switch_notify_event(wifi_interface_info_t *interface, str
         break;
     }
 
-    if (!(wifi_chan_event_type) && ((radio_param->channel == channel) && (radio_param->channelWidth == l_channel_width))) {
+    if ((wifi_chan_event_type == WIFI_EVENT_CHANNELS_CHANGED) && ((*p_prev_channel == channel)
+                             && (*p_prev_channelWidth == l_channel_width))) {
         return;
     } else {
-        wifi_hal_dbg_print("%s:%d: ifidx:%d on radio:%d channel:%d freq:%d bandwidth:%d cf1:%d cf2:%d channelType:%d wifi_chan_event_type:%d radar_event_type %d\n", __func__, __LINE__,
-                              ifidx, interface->vap_info.radio_index, channel, freq, bw, cf1, cf2, ch_type, wifi_chan_event_type, event_type);
+        wifi_hal_dbg_print("%s:%d: ifidx:%d vap_name:%s on radio:%d channel:%d freq:%d bandwidth:%d cf1:%d cf2:%d \
+                            channelType:%d wifi_chan_event_type:%d radar_event_type %d\n", __func__, __LINE__,
+                            ifidx, interface->vap_info.vap_name, interface->vap_info.radio_index, channel, freq, bw,
+                            cf1, cf2, ch_type, wifi_chan_event_type, event_type);
     }
-    
+
     radio_param->channelWidth = l_channel_width;
     radio_param->channel = channel;
     if ((op_class = get_op_class_from_radio_params(radio_param)) == -1) {
@@ -498,6 +505,9 @@ static void nl80211_ch_switch_notify_event(wifi_interface_info_t *interface, str
         radio_channel_param.op_class = op_class;
         callbacks->channel_change_event_callback(radio_channel_param);
     }
+
+    *p_prev_channel = channel;
+    *p_prev_channelWidth = l_channel_width;
 
 }
 
