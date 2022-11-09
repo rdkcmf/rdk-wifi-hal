@@ -2042,15 +2042,18 @@ static int get_sta_handler(struct nl_msg *msg, void *arg)
         genlmsg_attrlen(gnlh, 0), NULL);
 
     if (!tb[NL80211_ATTR_IFINDEX]) {
-        wifi_hal_dbg_print("%s:%d: Interface index missing\n", __func__, __LINE__);
+        wifi_hal_error_print("%s:%d: Interface index missing\n", __func__, __LINE__);
+        return NL_SKIP;
     }
 
     if (interface->index != nla_get_u32(tb[NL80211_ATTR_IFINDEX])) {
-        wifi_hal_dbg_print("%s:%d: Wrong interface index\n", __func__, __LINE__);
+        wifi_hal_error_print("%s:%d: Wrong interface index\n", __func__, __LINE__);
+        return NL_SKIP;
     }
 
     if (!tb[NL80211_ATTR_MAC]) {
-        wifi_hal_dbg_print("%s:%d: MAC addr missing!", __func__, __LINE__);
+        wifi_hal_error_print("%s:%d: MAC addr missing!", __func__, __LINE__);
+        return NL_SKIP;
     }
 
     memcpy(sta_mac, nla_data(tb[NL80211_ATTR_MAC]), nla_len(tb[NL80211_ATTR_MAC]));
