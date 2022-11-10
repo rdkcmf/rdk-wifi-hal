@@ -2087,6 +2087,7 @@ static int get_sta_handler(struct nl_msg *msg, void *arg)
         return NL_SKIP;
     }
 
+    memset(&associated_dev, 0, sizeof(associated_dev));
     memcpy(associated_dev.cli_MACAddress, &sta_mac, sizeof(mac_address_t));
     associated_dev.cli_RSSI = rssi;
     associated_dev.cli_Active = true;
