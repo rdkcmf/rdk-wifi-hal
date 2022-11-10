@@ -397,17 +397,46 @@ int update_security_config(wifi_vap_security_t *sec, struct hostapd_bss_config *
         case wifi_security_mode_wpa3_personal:
         case wifi_security_mode_wpa3_enterprise:
             conf->wpa_key_mgmt = WPA_KEY_MGMT_SAE;
+#if HOSTAPD_VERSION >= 210 //2.10
+            conf->sae_pwe = 1;  /* 0 = Hunt-and-Peck, 1 = Hash-to-Element, 2 = both */
+#endif
             break;
         case wifi_security_mode_wpa3_transition:
-            conf->wpa_key_mgmt = WPA_KEY_MGMT_PSK | WPA_KEY_MGMT_SAE; 
+            conf->wpa_key_mgmt = WPA_KEY_MGMT_PSK | WPA_KEY_MGMT_SAE;
+#if HOSTAPD_VERSION >= 210 //2.10
+            conf->sae_pwe = 2;
+#endif
             break;
         default:
             conf->wpa_key_mgmt = -1;
             break;
     }
 
+#ifdef CONFIG_SAE
+    if (conf->wpa_key_mgmt & WPA_KEY_MGMT_SAE) {
+        if (conf->sae_groups == NULL) {
+            conf->sae_groups = (int *) os_malloc(sizeof(int) * 4);
+            conf->sae_groups[0] = 19;
+            conf->sae_groups[1] = 20;
+            conf->sae_groups[2] = 21;
+            conf->sae_groups[3] = 0;
+        }
+    }
+#endif
+
 #ifdef CONFIG_IEEE80211W
     conf->ieee80211w = sec->mfp;
+    switch (conf->ieee80211w) {
+        case MGMT_FRAME_PROTECTION_OPTIONAL:
+        case MGMT_FRAME_PROTECTION_REQUIRED:
+            conf->sae_require_mfp = 1;
+            break;
+
+        case NO_MGMT_FRAME_PROTECTION:
+        default:
+            conf->sae_require_mfp = 0;
+            break;
+    }
 #endif
 
     if (conf->wpa_key_mgmt != -1) {
@@ -1153,9 +1182,21 @@ int update_hostap_interface_params(wifi_interface_info_t *interface)
         return RETURN_ERR;
     }
     if (update_hostap_bss(interface) != RETURN_OK) {
+#ifdef CONFIG_SAE
+        if (interface->u.ap.conf.sae_groups) {
+            os_free(interface->u.ap.conf.sae_groups);
+            interface->u.ap.conf.sae_groups = NULL;
+        }
+#endif
         return RETURN_ERR;
     }
     if (update_hostap_iface(interface) != RETURN_OK) {
+#ifdef CONFIG_SAE
+        if (interface->u.ap.conf.sae_groups) {
+            os_free(interface->u.ap.conf.sae_groups);
+            interface->u.ap.conf.sae_groups = NULL;
+        }
+#endif
         return RETURN_ERR;
     }
 

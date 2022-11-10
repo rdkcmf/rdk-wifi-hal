@@ -306,6 +306,11 @@ INT wifi_hal_setRadioOperatingParameters(wifi_radio_index_t index, wifi_radio_op
                 if (radio->oper_param.enable == false && interface->bss_started) {
                     interface->beacon_set = 0;
                     hostapd_reload_config(interface->u.ap.hapd.iface);
+#ifdef CONFIG_SAE
+                    if (interface->u.ap.conf.sae_groups) {
+                        interface->u.ap.conf.sae_groups = NULL;
+                    }
+#endif
                     nl80211_enable_ap(interface, false);
                     hostapd_bss_deinit_no_free(&interface->u.ap.hapd);
                     hostapd_free_hapd_data(&interface->u.ap.hapd);
@@ -613,6 +618,11 @@ INT wifi_hal_createVAP(wifi_radio_index_t index, wifi_vap_info_map_t *map)
                     // reload vaps config
                     interface->beacon_set = 0;
                     hostapd_reload_config(interface->u.ap.hapd.iface);
+#ifdef CONFIG_SAE
+                    if (interface->u.ap.conf.sae_groups) {
+                        interface->u.ap.conf.sae_groups = NULL;
+                    }
+#endif
                     nl80211_enable_ap(interface, false);
                     hostapd_bss_deinit_no_free(&interface->u.ap.hapd);
                     hostapd_free_hapd_data(&interface->u.ap.hapd);
