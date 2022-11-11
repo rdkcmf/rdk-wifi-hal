@@ -3466,7 +3466,8 @@ int nl80211_get_channel_bw_conn(wifi_interface_info_t *interface)
     return 0;
 
 }
-int nl80211_start_scan(wifi_interface_info_t *interface, unsigned int num_freq, unsigned int  *freq_list, unsigned int num_ssid, ssid_t *ssid_list)
+
+int nl80211_start_scan(wifi_interface_info_t *interface, unsigned int num_freq, unsigned int  *freq_list, unsigned int num_ssid, unsigned int dwell_time, ssid_t *ssid_list)
 {
     struct nl_msg *msg;
     struct nlattr *ssids;
@@ -3479,7 +3480,11 @@ int nl80211_start_scan(wifi_interface_info_t *interface, unsigned int num_freq, 
     }
 
     //nla_put_u32(msg, NL80211_ATTR_SCHED_SCAN_INTERVAL, scan_params->period);
-
+    
+    nla_put_u16(msg, NL80211_ATTR_MEASUREMENT_DURATION, dwell_time);
+    if (dwell_time > 0) {
+        nla_put_flag(msg, NL80211_ATTR_MEASUREMENT_DURATION_MANDATORY);
+    }
     ssids = nla_nest_start(msg, NL80211_ATTR_SCAN_SSIDS);
     nla_put(msg, 1, strlen(ssid_list[0]), ssid_list[0]); 
     nla_nest_end(msg, ssids);

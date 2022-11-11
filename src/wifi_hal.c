@@ -1070,7 +1070,7 @@ INT wifi_hal_startScan(wifi_radio_index_t index, wifi_neighborScanMode_t scan_mo
     strcpy(ssid_list[0], vap->u.sta_info.ssid);
     wifi_hal_info_print("%s:%d: Scan Frequencies:%s \n", __func__, __LINE__, chan_list_str);
 
-    return (nl80211_start_scan(interface, num, freq_list, 1, ssid_list) == 0) ? RETURN_OK:RETURN_ERR;
+    return (nl80211_start_scan(interface, num, freq_list, 1, dwell_time, ssid_list) == 0) ? RETURN_OK:RETURN_ERR;
 }
 
 INT wifi_hal_mgmt_frame_callbacks_register(wifi_receivedMgmtFrame_callback func)
