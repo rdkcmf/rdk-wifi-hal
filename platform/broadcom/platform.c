@@ -48,13 +48,22 @@ void set_string_nvram_param(char *param_name, char *value)
 
 int platform_pre_init()
 {
-    wifi_hal_dbg_print("%s: \n", __FUNCTION__);
+    wifi_hal_dbg_print("%s:%d \r\n", __func__, __LINE__);
 
 //    wlcsm_nvram_set("wl0_bw_cap", "3");
     /* registering the dummy callbacks to receive the events in plume */
     wifi_newApAssociatedDevice_callback_register(sta_associated);
     wifi_apDeAuthEvent_callback_register(sta_deauthenticated);
     wifi_apDisassociatedDevice_callback_register(sta_disassociated);
+#if 0
+    system("wl -i wl0.1 nmode_protection_override 0");
+    system("wl -i wl1.1 nmode_protection_override 0");
+    system("wl -i wl0.1 protection_control 0");
+    system("wl -i wl1.1 protection_control 0");
+    system("wl -i wl0.1 gmode_protection_control 0");
+    system("wl -i wl1.1 gmode_protection_control 0");
+    wifi_hal_dbg_print("%s:%d: wifi param set success\r\n", __func__, __LINE__);
+#endif
     return 0;
 }
 
@@ -123,6 +132,14 @@ int platform_post_init(wifi_vap_info_map_t *vap_map)
     wlcsm_nvram_set("acsd2_started", "1");
 
     wifi_hal_info_print("%s:%d: acsd2_started\r\n", __func__, __LINE__);
+
+    system("wl -i wl0.1 nmode_protection_override 0");
+    system("wl -i wl1.1 nmode_protection_override 0");
+    system("wl -i wl0.1 protection_control 0");
+    system("wl -i wl1.1 protection_control 0");
+    system("wl -i wl0.1 gmode_protection_control 0");
+    system("wl -i wl1.1 gmode_protection_control 0");
+    wifi_hal_dbg_print("%s:%d: wifi param set success\r\n", __func__, __LINE__);
 
     if (vap_map != NULL) {
         for(i = 0; i < g_wifi_hal.num_radios; i++) {
