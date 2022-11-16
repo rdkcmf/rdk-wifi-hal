@@ -1,0 +1,63 @@
+##########################################################################
+# If not stated otherwise in this file or this component's Licenses.txt
+# file the following copyright and licenses apply:
+#
+# Copyright 2015 RDK Management
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+##########################################################################
+AM_CFLAGS = -D_ANSC_LINUX
+AM_CFLAGS += -D_ANSC_USER
+AM_CFLAGS += -D_ANSC_LITTLE_ENDIAN_
+AM_CFLAGS += -Wall -Werror -Wextra -Wno-unused-parameter -Wno-pointer-sign -Wno-sign-compare -Wno-type-limits -Wno-format-truncation
+AM_CPPFLAGS = -Wall -Werror
+SUBDIRS = .
+if WITH_GTEST_SUPPORT
+SUBDIRS += test
+endif
+ACLOCAL_AMFLAGS = -I m4
+hardware_platform = i686-linux-gnu
+
+lib_LTLIBRARIES = librdk_wifihal.la
+librdk_wifihal_la_CPPFLAGS = -I$(top_srcdir)/./include $(CPPFLAGS) -I$(top_srcdir)/../util_crypto -I${PKG_CONFIG_SYSROOT_DIR}${includedir}/libnl3 -I${PKG_CONFIG_SYSROOT_DIR}${includedir}/rdk-wifi-libhostap/ -I${PKG_CONFIG_SYSROOT_DIR}${includedir}/rdk-wifi-libhostap/src/ -I${PKG_CONFIG_SYSROOT_DIR}${includedir}/rdk-wifi-libhostap/src/utils/ -I${PKG_CONFIG_SYSROOT_DIR}${includedir}/rdk-wifi-libhostap/src/ap/ -I${PKG_CONFIG_SYSROOT_DIR}${includedir}/rdk-wifi-libhostap/src/drivers/ -I$(top_srcdir)/../util
+librdk_wifihal_la_CFLAGS = -Wall -Werror -Wextra -Wno-unused-parameter -Wno-pointer-sign -Wno-sign-compare -Wno-type-limits -Wno-format-truncation -Wno-poison-system-directories -Wno-discarded-qualifiers
+librdk_wifihal_la_SOURCES = wifi_hal_rx_test.c wifi_hal_data_rx.c wifi_hal_dpp.c wifi_hal_anqp.c wifi_hal_frame_test.c ../util_crypto/aes_siv.c wifi_tlv.c wifi_hal_rdk_util.c
+librdk_wifihal_la_LDFLAGS = -lm -lcjson -lssl -lcrypto
+
+if ONE_WIFIBUILD
+librdk_wifihal_la_LDFLAGS += -lhostap -lnl-3 -lnl-genl-3 -lnl-route-3
+librdk_wifihal_la_SOURCES += wifi_hal.c wifi_hal_hostapd.c wifi_hal_nl80211.c wifi_hal_nl80211_events.c wifi_hal_nl80211_utils.c collection.c wifi_hal_mgmt_rx_one_wifi.c
+else
+librdk_wifihal_la_SOURCES += wifi_hal_mgmt_rx.c
+endif
+
+if TCXB7_PORT
+librdk_wifihal_la_CPPFLAGS += -I$(top_srcdir)/../platform/broadcom
+librdk_wifihal_la_SOURCES += ../platform/broadcom/platform.c
+endif
+
+if SKYSR300_PORT
+librdk_wifihal_la_CPPFLAGS += -I$(top_srcdir)/../platform/broadcom
+librdk_wifihal_la_SOURCES += ../platform/broadcom/platform.c
+endif
+
+if XLE_PORT
+librdk_wifihal_la_CPPFLAGS += -I$(top_srcdir)/../platform/xle
+librdk_wifihal_la_SOURCES += ../platform/xle/platform_xle.c
+endif
+
+include_HEADERS = wifi_hal_rdk.h wifi_hal_rdk_framework.h ../util_crypto/aes_siv.h
+
+if ONE_WIFIBUILD
+include_HEADERS += wifi_hal_priv.h
+endif
