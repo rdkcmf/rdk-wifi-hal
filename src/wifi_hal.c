@@ -382,6 +382,9 @@ INT wifi_hal_setRadioOperatingParameters(wifi_radio_index_t index, wifi_radio_op
                 }
 
                 if (radio->oper_param.enable == false && interface->bss_started) {
+                    /* Clear beacon interval in wdev by stoping AP */
+                    nl80211_interface_enable(interface->name, false);
+                    nl80211_interface_enable(interface->name, true);
                     interface->beacon_set = 0;
                     hostapd_reload_config(interface->u.ap.hapd.iface);
 #ifdef CONFIG_SAE
