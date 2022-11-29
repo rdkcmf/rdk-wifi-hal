@@ -60,6 +60,14 @@ struct rtnl_kvr_handle
 #ifndef IFLA_WIRELESS
 #define IFLA_WIRELESS   (IFLA_MASTER + 1)
 #endif /* IFLA_WIRELESS */
+
+/*************************************************************************************
+  The following definitions are
+  Copyright (c) 1997-2007 Jean Tourrilhes, All Rights Reserved.
+  Licensed under GPL-2.0 WITH Linux-syscall-note
+  (https://github.com/torvalds/linux/blob/master/LICENSES/exceptions/Linux-syscall-note)
+**************************************************************************************/
+
 #define IWEVTXDROP  0x8C00      /* Packet dropped to excessive retry */
 #define IWEVQUAL    0x8C01      /* Quality part of statistics (scan) */
 #define IWEVCUSTOM  0x8C02      /* Driver specific ascii string */
