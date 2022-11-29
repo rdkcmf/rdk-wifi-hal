@@ -3737,8 +3737,8 @@ static int wifi_sta_remove(wifi_interface_info_t *interface,
 
     ret = send_and_recv(g_wifi_hal.nl_cb, g_wifi_hal.nl, msg, NULL, NULL, NULL, NULL);
 
-    wifi_hal_info_print("nl80211: sta_remove -> DEL_STATION %s %s --> %d (%s)\n",
-          interface->name, to_mac_str(addr, mac_str), ret, strerror(-ret));
+    wifi_hal_info_print("nl80211: sta_remove -> DEL_STATION %s %s --> %d (%s) reason: %d deauth: %d\n",
+          interface->name, to_mac_str(addr, mac_str), ret, strerror(-ret), reason_code, deauth);
 
     if (ret == -ENOENT) {
         return 0;
