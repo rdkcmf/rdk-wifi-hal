@@ -112,6 +112,7 @@ const wifi_driver_info_t  driver_info = {
     platform_create_vap,
     platform_get_ssid_default,
     platform_get_keypassphrase_default,
+    platform_get_radius_key_default,
     platform_get_wps_pin_default,
     platform_get_country_code_default
 #endif
@@ -127,6 +128,7 @@ const wifi_driver_info_t  driver_info = {
     platform_create_vap,
     platform_get_ssid_default,
     platform_get_keypassphrase_default,
+    platform_get_radius_key_default,
     platform_get_wps_pin_default,
     platform_get_country_code_default
 #endif
@@ -142,6 +144,7 @@ const wifi_driver_info_t  driver_info = {
     platform_create_vap,
     platform_get_ssid_default,
     platform_get_keypassphrase_default,
+    platform_get_radius_key_default,
     platform_get_wps_pin_default,
     platform_get_country_code_default
 #endif
@@ -1844,6 +1847,10 @@ platform_ssid_default_t get_platform_ssid_default_fn()
 platform_keypassphrase_default_t get_platform_keypassphrase_default_fn()
 {
    return driver_info.platform_keypassphrase_default_fn;
+}
+platform_radius_key_default_t get_platform_radius_key_default_fn()
+{
+   return driver_info.platform_radius_key_default_fn;
 }
 
 platform_wps_pin_default_t get_platform_wps_pin_default_fn()

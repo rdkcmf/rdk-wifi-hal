@@ -71,6 +71,23 @@ int platform_get_keypassphrase_default(char *password, int vap_index)
     }
     return -1;
 }
+int platform_get_radius_key_default(char *radius_key)
+{
+    char nvram_name[NVRAM_NAME_SIZE];
+    char *key;
+
+    snprintf(nvram_name, sizeof(nvram_name), "default_radius_key");
+    key = wlcsm_nvram_get(nvram_name);
+    if (key == NULL) {
+        wifi_hal_error_print("%s:%d nvram  radius_keydefault value is NULL\r\n", __func__, __LINE__);
+        return -1;
+    }
+    else {
+        strcpy(radius_key,key);
+        wifi_hal_dbg_print("%s:%d::nvram name %s and radius_key %s\n",__func__, __LINE__, nvram_name,radius_key);
+    }
+        return 0;
+}
 
 int platform_get_ssid_default(char *ssid, int vap_index){
     char *str = NULL;
@@ -182,3 +199,4 @@ int nvram_get_current_ssid(char *l_ssid, int vap_index)
     wifi_hal_dbg_print("%s:%d vap[%d] ssid:%s nvram name:%s\r\n", __func__, __LINE__, vap_index, l_ssid, nvram_name);
     return 0;
 }
+

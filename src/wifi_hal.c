@@ -214,6 +214,16 @@ INT wifi_hal_get_default_keypassphrase(char *password, int vap_index)
 
     return RETURN_ERR;
 }
+INT wifi_hal_get_default_radius_key(char *radius_key)
+{
+    platform_radius_key_default_t platform_radius_key_default_fn;
+    if ((platform_radius_key_default_fn = get_platform_radius_key_default_fn()) != NULL) {
+        wifi_hal_dbg_print("%s:%d: platform  default_radius_key\n", __func__, __LINE__);
+        return (platform_radius_key_default_fn(radius_key));
+    }
+
+    return RETURN_ERR;
+}
 
 INT wifi_hal_get_default_wps_pin(char *pin)
 {
