@@ -762,6 +762,13 @@ INT wifi_hal_getRadioVapInfoMap(wifi_radio_index_t index, wifi_vap_info_map_t *m
 
     while (interface != NULL) {
         memcpy(&map->vap_array[itr], &interface->vap_info, sizeof(wifi_vap_info_t));
+
+        if (strncmp((char *)map->vap_array[itr].vap_name, "mesh_sta", strlen("mesh_sta")) != 0) {
+            memcpy(map->vap_array[itr].u.bss_info.bssid, interface->mac, sizeof(map->vap_array[itr].u.bss_info.bssid));
+        } else {
+            memcpy(map->vap_array[itr].u.sta_info.mac, interface->mac, sizeof(map->vap_array[itr].u.sta_info.mac));
+        }
+
         interface = hash_map_get_next(radio->interface_map, interface);
 
         itr++;
