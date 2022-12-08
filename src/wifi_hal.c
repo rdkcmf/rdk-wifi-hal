@@ -345,12 +345,16 @@ INT wifi_hal_setRadioOperatingParameters(wifi_radio_index_t index, wifi_radio_op
         goto Exit;
     }
 
-    if (radio->configured && radio->oper_param.enable && radio->oper_param.channel != operationParam->channel) {
+    if (radio->configured && radio->oper_param.enable && (radio->oper_param.channel != operationParam->channel ||
+        radio->oper_param.channelWidth != operationParam->channelWidth)) {
         radio->oper_param.channel = operationParam->channel;
+        radio->oper_param.channelWidth = operationParam->channelWidth;
         radio->oper_param.op_class = operationParam->op_class;
         radio->oper_param.autoChannelEnabled = operationParam->autoChannelEnabled;
         if (memcmp((unsigned char *)&radio->oper_param, (unsigned char *)operationParam, sizeof(wifi_radio_operationParam_t)) == 0) {
             wifi_hal_dbg_print("%s:%d:Switch channel on radio index:%d\n", __func__, __LINE__, index);
+
+            update_hostap_config_params(radio);
             nl80211_switch_channel(radio);
             goto Exit;
         }

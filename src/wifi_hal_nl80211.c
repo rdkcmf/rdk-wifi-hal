@@ -2761,6 +2761,28 @@ int nl80211_switch_channel(wifi_radio_info_t *radio)
     while (interface != NULL) {
         if (interface->bss_started) {
             wifi_hal_dbg_print("Switch channel on %s\n", interface->name);
+            hostapd_set_oper_centr_freq_seg1_idx(interface->u.ap.hapd.iconf, 0);
+            hostapd_set_oper_centr_freq_seg0_idx(interface->u.ap.hapd.iconf, 0);
+
+            switch (param->channelWidth) {
+            case WIFI_CHANNELBANDWIDTH_20MHZ:
+            case WIFI_CHANNELBANDWIDTH_40MHZ:
+                hostapd_set_oper_chwidth(interface->u.ap.hapd.iconf, CHANWIDTH_USE_HT);
+                break;
+
+            case WIFI_CHANNELBANDWIDTH_80MHZ:
+                hostapd_set_oper_chwidth(interface->u.ap.hapd.iconf, CHANWIDTH_80MHZ);
+                break;
+
+            case WIFI_CHANNELBANDWIDTH_160MHZ:
+                hostapd_set_oper_chwidth(interface->u.ap.hapd.iconf, CHANWIDTH_160MHZ);
+                break;
+
+            default:
+                hostapd_set_oper_chwidth(interface->u.ap.hapd.iconf, CHANWIDTH_USE_HT);
+                break;
+            }
+
             hostapd_switch_channel(&interface->u.ap.hapd, &csa_settings);
         }
         interface = hash_map_get_next(radio->interface_map, interface);
