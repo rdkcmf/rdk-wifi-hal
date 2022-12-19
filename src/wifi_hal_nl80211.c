@@ -5626,6 +5626,7 @@ int     wifi_drv_set_key(const char *ifname, void *priv, enum wpa_alg alg,
     interface = (wifi_interface_info_t *)priv;
     vap = &interface->vap_info;
 
+    wifi_hal_dbg_print("%s:%d: ifname:%s vap_index:%d\n", __func__, __LINE__, interface->name, vap->vap_index);
     //wifi_hal_dbg_print("%s:%d: ifname: %s\n", __func__, __LINE__, interface->name);
     //wifi_hal_dbg_print("%s:%d: key Info: index:%d length:%d alg:%s\n", __func__, __LINE__, key_idx, key_len, wpa_alg_to_string(alg));
     //my_print_hex_dump(key_len, key);
@@ -5673,7 +5674,7 @@ int     wifi_drv_set_key(const char *ifname, void *priv, enum wpa_alg alg,
         return -1;
     }
 
-    wifi_hal_dbg_print("%s:%d: new key success\n", __func__, __LINE__);
+    wifi_hal_dbg_print("%s:%d: new key success for ifname:%s vap_index:%d\n", __func__, __LINE__, interface->name, vap->vap_index);
 
     if (vap->vap_mode != wifi_vap_mode_sta)
         return 0;
@@ -5733,7 +5734,7 @@ int     wifi_drv_set_key(const char *ifname, void *priv, enum wpa_alg alg,
         return -1;
     }
 
-    wifi_hal_dbg_print("%s:%d: new key success\n", __func__, __LINE__);
+    wifi_hal_dbg_print("%s:%d: new key success for ifname:%s vap_index:%d\n", __func__, __LINE__, interface->name, vap->vap_index);
 
     if (vap->vap_mode != wifi_vap_mode_sta)
         return 0;
@@ -5764,7 +5765,7 @@ int     wifi_drv_set_key(const char *ifname, void *priv, enum wpa_alg alg,
         return -1;
     }
 
-    wifi_hal_info_print("%s:%d:key set success\n", __func__, __LINE__);
+    wifi_hal_info_print("%s:%d:key set success for ifname:%s vap_index:%d\n", __func__, __LINE__, interface->name, vap->vap_index);
 
     return 0;
 }

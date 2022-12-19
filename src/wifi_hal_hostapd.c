@@ -150,8 +150,8 @@ void init_hostap_bss(wifi_interface_info_t *interface)
     conf->broadcast_key_idx_max = 2;
     conf->eap_reauth_period = 3600;
 
-    conf->wpa_group_rekey = 600;
-    conf->wpa_gmk_rekey = 86400;
+    conf->wpa_group_rekey = 0;
+    conf->wpa_gmk_rekey = 0;
     conf->wpa_group_update_count = 4;
     conf->wpa_pairwise_update_count = 4;
     conf->wpa_disable_eapol_key_retries =
@@ -494,11 +494,11 @@ int update_security_config(wifi_vap_security_t *sec, struct hostapd_bss_config *
         break;
     }
     
-    //wpa_group_rekey
-    conf->wpa_gmk_rekey = sec->rekey_interval;
     conf->wpa_group_rekey = sec->rekey_interval;
+    conf->wpa_group_rekey_set = 1;
 
-    //wpa_strict_rekey
+    wifi_hal_dbg_print("%s:%d: wpa_gmk_rekey:%d wpa_group_rekey:%d\n", __func__, __LINE__, conf->wpa_gmk_rekey, conf->wpa_group_rekey);
+
     conf->wpa_strict_rekey = sec->strict_rekey;
 
 #if 0
