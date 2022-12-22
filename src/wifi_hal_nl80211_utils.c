@@ -178,6 +178,7 @@ const wifi_driver_info_t  driver_info = {
     platform_create_vap,
     platform_get_ssid_default,
     platform_get_keypassphrase_default,
+    platform_get_radius_key_default,
     platform_get_wps_pin_default,
     platform_get_country_code_default
 #endif
