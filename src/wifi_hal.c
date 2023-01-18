@@ -36,38 +36,6 @@
 
 #define MAC_ADDRESS_LEN 6
 
-#define RADIO_INDEX_ASSERT_RC(radioIndex, retcode) \
-    do { \
-        int index = (int)radioIndex; \
-        if ((index >= (MAX_NUM_RADIOS)) || (index < 0)) { \
-            wifi_hal_error_print("%s: INCORRECT radioIndex = %d numRadios = %d\n", \
-                    __FUNCTION__, index, MAX_NUM_RADIOS); \
-            return retcode; \
-        } \
-    } while (0)
-
-#define AP_INDEX_ASSERT_RC(apIndex, retcode) \
-    do { \
-        int index = (int)apIndex; \
-        if ((index >= (MAX_VAP)) || (index < 0)) { \
-            wifi_hal_error_print("%s, INCORRECT apIndex = %d MAX_VAP = %d\n", __FUNCTION__, \
-                            index, MAX_VAP); \
-            return retcode; \
-        } \
-    } while (0)
-
-#define NULL_PTR_ASSERT_RC(ptr, retcode) \
-    do { \
-        if (NULL == ptr) { \
-            wifi_hal_error_print("%s:%d NULL pointer!\n", __FUNCTION__, __LINE__); \
-            return retcode; \
-        } \
-    } while (0)
-
-#define RADIO_INDEX_ASSERT(radioIndex)  RADIO_INDEX_ASSERT_RC(radioIndex, WIFI_HAL_INVALID_ARGUMENTS)
-#define AP_INDEX_ASSERT(apIndex)        AP_INDEX_ASSERT_RC(apIndex, WIFI_HAL_INVALID_ARGUMENTS)
-#define NULL_PTR_ASSERT(ptr)            NULL_PTR_ASSERT_RC(ptr, WIFI_HAL_INVALID_ARGUMENTS)
-
 static int g_fd_arr[MAX_VAP] = {0};
 static int g_IfIdx_arr[MAX_VAP] = {0};
 static unsigned char g_vapSmac[MAX_VAP][MAC_ADDRESS_LEN] = {'\0'};
@@ -81,8 +49,6 @@ INT wifi_hal_getHalCapability(wifi_hal_capability_t *hal)
     wifi_vap_info_t *vap;
     bool is_band_found = false;
     unsigned int radio_band = 0;
-
-    NULL_PTR_ASSERT(hal);
 
     hal->version.major = WIFI_HAL_MAJOR;
     hal->version.minor = WIFI_HAL_MINOR;
@@ -306,9 +272,6 @@ INT wifi_hal_setRadioOperatingParameters(wifi_radio_index_t index, wifi_radio_op
     wifi_radio_operationParam_t old_operationParam;
     platform_set_radio_pre_init_t set_radio_pre_init_fn;
 
-    RADIO_INDEX_ASSERT(index);
-    NULL_PTR_ASSERT(operationParam);
-
     if ((op_class = get_op_class_from_radio_params(operationParam)) == -1) {
         wifi_hal_error_print("%s:%d:Could not find country code for radio index:%d\n", __func__, __LINE__, index);
         return RETURN_ERR;
@@ -483,9 +446,6 @@ INT wifi_hal_connect(INT ap_index, wifi_bss_info_t *bss)
     wifi_sta_priv_t *sta;
     int best_rssi = -100;
 
-    AP_INDEX_ASSERT(ap_index);
-    NULL_PTR_ASSERT(bss);
-
     if ((interface = get_interface_by_vap_index(ap_index)) == NULL) {
         wifi_hal_error_print("%s:%d:interface for ap index:%d not found\n", __func__, __LINE__, ap_index);
         return RETURN_ERR;
@@ -534,8 +494,6 @@ INT wifi_hal_disconnect(INT ap_index)
 {
     wifi_interface_info_t *interface;
     wifi_vap_info_t *vap;
-
-    AP_INDEX_ASSERT(ap_index);
 
     if ((interface = get_interface_by_vap_index(ap_index)) == NULL) {
         wifi_hal_error_print("%s:%d:interface for ap index:%d not found\n", __func__, __LINE__, ap_index);
@@ -622,9 +580,6 @@ INT wifi_hal_createVAP(wifi_radio_index_t index, wifi_vap_info_map_t *map)
     unsigned int i;
     int filtermode;
     //bssid_t null_mac = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-
-    RADIO_INDEX_ASSERT(index);
-    NULL_PTR_ASSERT(map);
 
     wifi_hal_dbg_print("%s:%d: before get_radio_by_index:%d\r\n",__func__, __LINE__, index);
     radio = get_radio_by_rdk_index(index);
@@ -800,8 +755,10 @@ INT wifi_hal_getRadioVapInfoMap(wifi_radio_index_t index, wifi_vap_info_map_t *m
     wifi_interface_info_t *interface = NULL;
     wifi_radio_info_t *radio =  NULL;
 
-    RADIO_INDEX_ASSERT(index);
-    NULL_PTR_ASSERT(map);
+    if((index >= MAX_NUM_RADIOS) || (map == NULL)) {
+        wifi_hal_error_print("%s:%d: Inalid radio index or vapmap is NULL:%d\n", __func__, __LINE__, index);
+        return RETURN_ERR;
+    }
 
     radio = get_radio_by_rdk_index(index);
     if (radio == NULL) {
@@ -1011,13 +968,6 @@ INT wifi_hal_startScan(wifi_radio_index_t index, wifi_neighborScanMode_t scan_mo
     char country[8] = {0}, tmp_str[32] = {0}, chan_list_str[512] = {0};
     unsigned int freq_list[32], i;
     ssid_t  ssid_list[8];
-
-    RADIO_INDEX_ASSERT(index);
-
-    if (dwell_time < 0) {
-        wifi_hal_error_print("%s:%d: invalide dwell time: %d\n", __func__, __LINE__, dwell_time);
-        return WIFI_HAL_INVALID_ARGUMENTS;
-    }
 
     radio = get_radio_by_rdk_index(index);
     if (radio == NULL) {
